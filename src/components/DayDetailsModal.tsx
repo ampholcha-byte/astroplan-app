@@ -233,6 +233,47 @@ export default function DayDetailsModal({ day, onClose }: DayDetailsModalProps) 
               </div>
             )}
 
+            {/* Light Pollution */}
+            {day.lightPollution && (
+              <div className="mb-5">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                  🌃 Light Pollution
+                </h3>
+                <div className="bg-slate-700/30 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-black text-white">{day.lightPollution.bortleScale}</div>
+                      <div>
+                        <div className={`text-sm font-semibold ${day.lightPollution.color}`}>{day.lightPollution.label}</div>
+                        <div className="text-[10px] text-slate-500">Bortle Scale</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-white">{day.lightPollution.brightness}</div>
+                      <div className="text-[10px] text-slate-500">mpsas</div>
+                    </div>
+                  </div>
+                  {/* Bortle scale bar */}
+                  <div className="flex gap-0.5 h-2 rounded-full overflow-hidden">
+                    {[1,2,3,4,5,6,7,8,9].map((level) => (
+                      <div
+                        key={level}
+                        className={`flex-1 rounded-sm ${
+                          level <= day.lightPollution!.bortleScale
+                            ? level <= 2 ? 'bg-gray-100' : level <= 4 ? 'bg-blue-400' : level <= 6 ? 'bg-green-400' : level <= 8 ? 'bg-yellow-400' : 'bg-red-400'
+                            : 'bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1 text-[8px] text-slate-600">
+                    <span>Dark (1)</span>
+                    <span>Bright (9)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Shooting advice */}
             <div className="bg-indigo-900/30 border border-indigo-700/30 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-indigo-300 mb-2">📸 Shooting Advice</h3>

@@ -12,6 +12,10 @@ function getDayScore(day: DayData): number {
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
   score -= day.cloudCoverPercentage * 0.5;
+  // Bonus for dark sky (low light pollution)
+  if (day.lightPollution) {
+    score -= (day.lightPollution.bortleScale - 1) * 3;
+  }
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 

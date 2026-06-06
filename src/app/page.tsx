@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource } from '@/types';
+import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
 import { getMoonLevel, getGalacticCenterTimes, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { getMockCloudCover } from '@/lib/weather';
-import { fetchWeatherForMonth } from './actions';
+import { fetchWeatherForMonth, fetchLightPollution } from './actions';
 import LocationSearch from '@/components/LocationSearch';
 import CalendarGrid from '@/components/CalendarGrid';
 import DayDetailsModal from '@/components/DayDetailsModal';
@@ -34,7 +34,8 @@ function createDay(
   date: number,
   lat: number,
   lng: number,
-  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>
+  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>,
+  lightPollutionCache: LightPollutionData | null
 ): DayData {
   const id = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
   const dateObj = new Date(year, month, date);
@@ -64,6 +65,7 @@ function createDay(
     weather,
     galacticCenter,
     sunMoon,
+    lightPollution: lightPollutionCache,
     visibility: gcVisible ? 'visible' : 'hidden',
   };
 }
@@ -73,7 +75,8 @@ function buildMonth(
   month: number,
   lat: number,
   lng: number,
-  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>
+  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>,
+  lightPollutionCache: LightPollutionData | null
 ): CalendarMonth {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
@@ -86,12 +89,12 @@ function buildMonth(
     const m = month - 1;
     const y = m < 0 ? year - 1 : year;
     const mi = m < 0 ? 11 : m;
-    days.push(createDay(y, mi, d, lat, lng, weatherCache));
+    days.push(createDay(y, mi, d, lat, lng, weatherCache, lightPollutionCache));
   }
 
   // Current month
   for (let d = 1; d <= daysInMonth; d++) {
-    days.push(createDay(year, month, d, lat, lng, weatherCache));
+    days.push(createDay(year, month, d, lat, lng, weatherCache, lightPollutionCache));
   }
 
   // Next month padding
@@ -100,7 +103,7 @@ function buildMonth(
     const m = month + 1;
     const y = m > 11 ? year + 1 : year;
     const mi = m > 11 ? 0 : m;
-    days.push(createDay(y, mi, d, lat, lng, weatherCache));
+    days.push(createDay(y, mi, d, lat, lng, weatherCache, lightPollutionCache));
   }
 
   return { year, month, days };
@@ -108,7 +111,7 @@ function buildMonth(
 
 export default function Home() {
   const [calendar, setCalendar] = useState<CalendarMonth>(() =>
-    buildMonth(new Date().getFullYear(), new Date().getMonth(), DEFAULT_LAT, DEFAULT_LNG, {})
+    buildMonth(new Date().getFullYear(), new Date().getMonth(), DEFAULT_LAT, DEFAULT_LNG, {}, null)
   );
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(null);
@@ -117,6 +120,9 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const fetchedRef = useRef<string>('');
+
+  const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
+  const lpFetchedRef = useRef<string>('');
 
   const regenerateCalendar = useCallback(
     async (year: number, month: number) => {
@@ -137,9 +143,21 @@ export default function Home() {
         }
       }
 
-      setCalendar(buildMonth(year, month, coords.lat, coords.lng, weatherCache));
+      // Fetch light pollution data (once per location)
+      const lpKey = `${coords.lat.toFixed(4)}-${coords.lng.toFixed(4)}`;
+      if (lpFetchedRef.current !== lpKey) {
+        lpFetchedRef.current = lpKey;
+        try {
+          const lp = await fetchLightPollution(coords.lat, coords.lng);
+          setLightPollution(lp);
+        } catch (err) {
+          console.warn('Light pollution fetch failed:', err);
+        }
+      }
+
+      setCalendar(buildMonth(year, month, coords.lat, coords.lng, weatherCache, lightPollution));
     },
-    [coords, settings.weatherApiKey]
+    [coords, settings.weatherApiKey, lightPollution]
   );
 
   useEffect(() => {

@@ -1,7 +1,8 @@
 'use server';
 
 import { getCloudCover, getMockCloudCover } from '@/lib/weather';
-import type { WeatherData } from '@/types';
+import { getLightPollution } from '@/lib/lightpollution';
+import type { WeatherData, LightPollutionData } from '@/types';
 
 export async function fetchWeatherForMonth(
   year: number,
@@ -16,7 +17,6 @@ export async function fetchWeatherForMonth(
   const promises = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
-    // Shift to midnight local to avoid timezone issues
     date.setHours(0, 0, 0, 0);
     promises.push(
       fetchDayWeather(date, lat, lng, apiKey).then((data) => {
@@ -35,14 +35,18 @@ async function fetchDayWeather(
   lng: number,
   apiKey: string
 ): Promise<{ weather: WeatherData; source: 'api' | 'mock' }> {
-  // Try API first
   if (apiKey) {
     const apiData = await getCloudCover(lat, lng, date, apiKey);
     if (apiData) {
       return { weather: apiData, source: 'api' };
     }
   }
-
-  // Fallback to mock
   return { weather: getMockCloudCover(date), source: 'mock' };
+}
+
+export async function fetchLightPollution(
+  lat: number,
+  lng: number
+): Promise<LightPollutionData | null> {
+  return getLightPollution(lat, lng);
 }

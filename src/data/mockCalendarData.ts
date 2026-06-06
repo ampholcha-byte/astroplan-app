@@ -49,6 +49,7 @@ function createMockDay(
       weather: null,
       galacticCenter: null,
       sunMoon: null,
+      lightPollution: null,
       visibility: 'hidden',
     };
   }
@@ -96,6 +97,7 @@ function createMockDay(
         }
       : null,
     sunMoon: null,
+    lightPollution: null,
     visibility,
   };
 }

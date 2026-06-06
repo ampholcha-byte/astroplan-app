@@ -44,6 +44,7 @@ export interface DayData {
   weather: WeatherData | null;
   galacticCenter: GalacticCenterTime | null;
   sunMoon: SunMoonTimes | null;
+  lightPollution: LightPollutionData | null;
   visibility: VisibilityState;
 }
 
@@ -51,6 +52,13 @@ export interface CalendarMonth {
   year: number;
   month: number;
   days: DayData[];
+}
+
+export interface LightPollutionData {
+  brightness: number;
+  bortleScale: number;
+  label: string;
+  color: string;
 }
 
 export interface AppSettings {
