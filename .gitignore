@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI IDE instructions & project planning (local only, not for sharing)
+CLAUDE.md
+AGENTS.md
+docs/
