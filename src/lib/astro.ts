@@ -1,5 +1,5 @@
 import SunCalc from 'suncalc';
-import { GalacticCenterTime, MoonLevel } from '@/types';
+import { GalacticCenterTime, MoonLevel, SunMoonTimes } from '@/types';
 
 const GC_RA = 266.4051;   // Galactic Center RA in degrees
 const GC_DEC = -28.936175; // Galactic Center Dec in degrees
@@ -109,4 +109,36 @@ export function isGalacticCenterVisible(
     -Math.sin(decRad) * Math.sin(latRad) /
     (Math.cos(decRad) * Math.cos(latRad));
   return cosH >= -1 && cosH <= 1;
+}
+
+// ── Sun & Moon Times ──
+
+export function getSunMoonTimes(
+  date: Date,
+  lat: number,
+  lng: number
+): SunMoonTimes {
+  const times = SunCalc.getTimes(date, lat, lng) as SunCalc.SunTimes;
+
+  // Moon times — SunCalc.getMoonTimes may return undefined for rise/set
+  // when moon is below horizon all day or above horizon all day
+  const moonTimes = (SunCalc as { getMoonTimes?: (date: Date, lat: number, lng: number) => { rise?: Date; set?: Date } }).getMoonTimes?.(date, lat, lng);
+
+  return {
+    sunrise: formatTimeFromDate(times.sunrise),
+    sunset: formatTimeFromDate(times.sunset),
+    goldenHourEnd: formatTimeFromDate(times.goldenHourEnd),
+    goldenHour: formatTimeFromDate(times.goldenHour),
+    blueHourEnd: formatTimeFromDate(times.dusk),
+    nauticalDusk: formatTimeFromDate(times.nauticalDusk),
+    nightStart: formatTimeFromDate(times.night),
+    moonrise: moonTimes?.rise ? formatTimeFromDate(moonTimes.rise) : null,
+    moonset: moonTimes?.set ? formatTimeFromDate(moonTimes.set) : null,
+  };
+}
+
+function formatTimeFromDate(date: Date): string {
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
 }

@@ -21,6 +21,18 @@ export interface GalacticCenterTime {
   set: string;
 }
 
+export interface SunMoonTimes {
+  sunrise: string;
+  sunset: string;
+  goldenHourEnd: string;
+  goldenHour: string;
+  blueHourEnd: string;
+  nauticalDusk: string;
+  nightStart: string;
+  moonrise: string | null;
+  moonset: string | null;
+}
+
 export interface DayData {
   id: string;
   date: number;
@@ -31,6 +43,7 @@ export interface DayData {
   cloudSource: CloudSource;
   weather: WeatherData | null;
   galacticCenter: GalacticCenterTime | null;
+  sunMoon: SunMoonTimes | null;
   visibility: VisibilityState;
 }
 

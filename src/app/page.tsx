@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource } from '@/types';
-import { getMoonLevel, getGalacticCenterTimes, isGalacticCenterVisible } from '@/lib/astro';
+import { getMoonLevel, getGalacticCenterTimes, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { getMockCloudCover } from '@/lib/weather';
 import { fetchWeatherForMonth } from './actions';
 import LocationSearch from '@/components/LocationSearch';
@@ -50,6 +50,9 @@ function createDay(
 
   const isHoliday = date === 1 || date === 15 || date % 7 === 0;
 
+  // Calculate sun & moon times
+  const sunMoon = getSunMoonTimes(dateObj, lat, lng);
+
   return {
     id,
     date,
@@ -60,6 +63,7 @@ function createDay(
     cloudSource,
     weather,
     galacticCenter,
+    sunMoon,
     visibility: gcVisible ? 'visible' : 'hidden',
   };
 }

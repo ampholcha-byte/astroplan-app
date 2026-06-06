@@ -48,6 +48,7 @@ function createMockDay(
       cloudSource: 'mock',
       weather: null,
       galacticCenter: null,
+      sunMoon: null,
       visibility: 'hidden',
     };
   }
@@ -94,6 +95,7 @@ function createMockDay(
           set: `${String(gcSetHour).padStart(2, '0')}:${String(gcSetMin).padStart(2, '0')}`,
         }
       : null,
+    sunMoon: null,
     visibility,
   };
 }

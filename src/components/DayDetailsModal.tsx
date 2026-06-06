@@ -158,6 +158,81 @@ export default function DayDetailsModal({ day, onClose }: DayDetailsModalProps) 
               )}
             </div>
 
+            {/* Sun & Moon Times */}
+            {day.sunMoon && (
+              <div className="mb-5">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                  🌞 Sun & Moon Times
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Sunrise */}
+                  <div className="bg-amber-900/20 border border-amber-700/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">🌅</span>
+                    <div>
+                      <div className="text-[9px] text-amber-400/70 uppercase">Sunrise</div>
+                      <div className="text-sm text-amber-300 font-semibold">{day.sunMoon.sunrise}</div>
+                    </div>
+                  </div>
+                  {/* Sunset */}
+                  <div className="bg-orange-900/20 border border-orange-700/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">🌇</span>
+                    <div>
+                      <div className="text-[9px] text-orange-400/70 uppercase">Sunset</div>
+                      <div className="text-sm text-orange-300 font-semibold">{day.sunMoon.sunset}</div>
+                    </div>
+                  </div>
+                  {/* Golden Hour */}
+                  <div className="bg-yellow-900/20 border border-yellow-700/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">✨</span>
+                    <div>
+                      <div className="text-[9px] text-yellow-400/70 uppercase">Golden Hour</div>
+                      <div className="text-xs text-yellow-300 font-medium">
+                        {day.sunMoon.sunset} → {day.sunMoon.goldenHourEnd}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Blue Hour */}
+                  <div className="bg-blue-900/20 border border-blue-700/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">🔵</span>
+                    <div>
+                      <div className="text-[9px] text-blue-400/70 uppercase">Blue Hour</div>
+                      <div className="text-xs text-blue-300 font-medium">
+                        {day.sunMoon.goldenHourEnd} → {day.sunMoon.nauticalDusk}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Moonrise */}
+                  {day.sunMoon.moonrise && (
+                    <div className="bg-slate-700/20 border border-slate-600/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                      <span className="text-lg">🌕</span>
+                      <div>
+                        <div className="text-[9px] text-slate-400/70 uppercase">Moonrise</div>
+                        <div className="text-sm text-slate-200 font-semibold">{day.sunMoon.moonrise}</div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Moonset */}
+                  {day.sunMoon.moonset && (
+                    <div className="bg-slate-700/20 border border-slate-600/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                      <span className="text-lg">🌑</span>
+                      <div>
+                        <div className="text-[9px] text-slate-400/70 uppercase">Moonset</div>
+                        <div className="text-sm text-slate-200 font-semibold">{day.sunMoon.moonset}</div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Night Start (Astronomical) */}
+                  <div className="col-span-2 bg-indigo-900/20 border border-indigo-700/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <span className="text-lg">🌌</span>
+                    <div>
+                      <div className="text-[9px] text-indigo-400/70 uppercase">Astronomical Night (best for MW)</div>
+                      <div className="text-sm text-indigo-300 font-semibold">{day.sunMoon.nightStart} → {day.sunMoon.sunrise}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Shooting advice */}
             <div className="bg-indigo-900/30 border border-indigo-700/30 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-indigo-300 mb-2">📸 Shooting Advice</h3>
