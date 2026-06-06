@@ -284,7 +284,11 @@ export default function Home() {
 
       {/* Day details modal */}
       {selectedDay && (
-        <DayDetailsModal day={selectedDay} onClose={() => setSelectedDay(null)} />
+        <DayDetailsModal
+          day={selectedDay}
+          onClose={() => setSelectedDay(null)}
+          locationName={location?.displayName ?? ''}
+        />
       )}
 
       {/* Settings panel */}

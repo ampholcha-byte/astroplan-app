@@ -1,10 +1,12 @@
 'use client';
 
 import { DayData } from '@/types';
+import ChecklistPanel from './ChecklistPanel';
 
 interface DayDetailsModalProps {
   day: DayData;
   onClose: () => void;
+  locationName?: string;
 }
 
 const MOON_LABEL: Record<number, string> = {
@@ -73,7 +75,7 @@ function getOverallScore(day: DayData): { score: number; label: string; color: s
   return { score, label: 'Very Poor', color: 'text-red-400' };
 }
 
-export default function DayDetailsModal({ day, onClose }: DayDetailsModalProps) {
+export default function DayDetailsModal({ day, onClose, locationName }: DayDetailsModalProps) {
   const score = getOverallScore(day);
   const advice = getShootingAdvice(day);
 
@@ -283,6 +285,9 @@ export default function DayDetailsModal({ day, onClose }: DayDetailsModalProps) 
                 ))}
               </ul>
             </div>
+
+            {/* Checklist */}
+            <ChecklistPanel dateId={day.id} location={locationName ?? ''} onClose={() => {}} />
           </>
         )}
       </div>

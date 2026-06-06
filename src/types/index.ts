@@ -61,6 +61,21 @@ export interface LightPollutionData {
   color: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
+export interface DayChecklist {
+  dateId: string;
+  location: string;
+  notes: string;
+  items: ChecklistItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppSettings {
   latitude: number;
   longitude: number;
