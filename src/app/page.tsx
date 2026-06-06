@@ -10,6 +10,7 @@ import CalendarGrid from '@/components/CalendarGrid';
 import DayDetailsModal from '@/components/DayDetailsModal';
 import BestDaysSummary from '@/components/BestDaysSummary';
 import SettingsPanel from '@/components/SettingsPanel';
+import NotificationBanner from '@/components/NotificationBanner';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -280,6 +281,9 @@ export default function Home() {
 
         {/* Best days summary */}
         <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} />
+
+        {/* Notification banner */}
+        <NotificationBanner days={calendar.days} />
       </div>
 
       {/* Day details modal */}
