@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ✦ AstroPlan — Milky Way Photography Planner
 
-## Getting Started
+> วางแผนถ่ายภาพทางดาราศาสตร์ให้สมบูรณ์แบบ ด้วยข้อมูลดวงจัน ตำแหน่ง Galactic Center สภาพอากาศ และมลพิษทางแสง — ทั้งหมดในหน้าเดียว
 
-First, run the development server:
+## ✨ ฟีเจอร์
+
+| ฟีเจอร์ | รายละเอียด |
+|---|---|
+| 🌙 **ดวงจัน** | คำนวณระดับความสว่างจันทร์จริง (SunCalc) — สีพื้นหลังปฏิทินเปลี่ยนตามความมืด/สว่าง |
+| 🌌 **Galactic Center** | คำนวณเวลา rise/set ของศูนย์กาลักศก์ทางช้างเผือก |
+| 🌤 **สภาพอากาศ** | เชื่อม OpenWeatherMap API สำหรับ cloud cover จริง (ถ้ามี API key) |
+| 🌅 **Golden / Blue Hour** | แสดงเวลา golden hour, blue hour, sunrise, sunset, moonrise, moonset |
+| 🌃 **Light Pollution** | แสดง Bortle scale + sky brightness (mpsas) สำหรับตำแหน่งที่เลือก |
+| 📋 **Checklist** | สร้าง shooting plan checklist สำหรับแต่ละวัน (เก็บใน localStorage) |
+| 🔔 **แจ้งเตือน** | Browser notification เมื่อพรุ่งนี้เป็นวันที่ดีสำหรับถ่ายภาพ |
+| 📱 **Responsive** | ใช้งานได้ทั้งมือถือและเดสก์ท็อป |
+
+## 🚀 เริ่มต้นใช้งาน
+
+### ติดตั้ง
+
+```bash
+git clone https://github.com/ampholcha-byte/astroplan-app.git
+cd astroplan-app
+npm install
+```
+
+### รัน dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## ⚙️ ตั้งค่า (ไม่บังคับ)
 
-To learn more about Next.js, take a look at the following resources:
+แอปใช้งานได้เลยโดยไม่ต้องตั้งค่าอะไร แต่ถ้าต้องการข้อมูลสภาพอากาศจริง:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. สมัคร API key ฟรีที่ [openweathermap.org/api](https://openweathermap.org/api)
+2. เปิดแอป → กด ⚙️ Settings → ใส่ API key ช่อง "Weather API Key"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠 Tech Stack
 
-## Deploy on Vercel
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS 4
+- **Astro Calc:** [SunCalc](https://github.com/mourner/suncalc) + custom Galactic Center formula
+- **Geocoding:** OpenStreetMap Nominatim API (ฟรี ไม่ต้อง API key)
+- **Weather:** OpenWeatherMap API (ฟรี ถ้ามี key, ไม่มีก็ใช้ mock data)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📂 โครงสร้างโปรเจกต์
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/
+│   ├── page.tsx          # หน้าหลัก — ปฏิทิน + navigation
+│   ├── layout.tsx        # Root layout + metadata
+│   ├── actions.ts        # Server actions (weather, light pollution)
+│   └── globals.css       # Global styles
+├── components/
+│   ├── CalendarGrid.tsx      # ตารางปฏิทิน 7 คอลัมน์
+│   ├── DayCell.tsx           # ช่องวัน (สีตามดวงจัน, GC times, cloud %)
+│   ├── DayDetailsModal.tsx   # รายละเอียดวัน (score, sun/moon times, light pollution, advice)
+│   ├── LocationSearch.tsx    # ค้นหาสถานที่ + GPS
+│   ├── BestDaysSummary.tsx   # วันที่ดีที่สุด 5 วันของเดือน
+│   ├── SettingsPanel.tsx     # ตั้งค่า (location, timezone, weather API key)
+│   ├── ChecklistPanel.tsx    # Shooting checklist
+│   ├── NotificationBanner.tsx # แจ้งเตือนวันที่ดี
+│   └── PathGraphic.tsx       # SVG เส้นทาง E-S-W
+├── lib/
+│   ├── astro.ts              # คำนวณดาราศาสตร์ (moon, GC, sun/moon times)
+│   ├── geocoding.ts          # Nominatim geocoding
+│   ├── weather.ts            # OpenWeatherMap API + mock
+│   ├── lightpollution.ts     # Light pollution data + Bortle scale
+│   ├── checklist.ts          # Checklist CRUD (localStorage)
+│   └── notifications.ts      # Browser notification system
+├── types/
+│   └── index.ts              # TypeScript interfaces
+└── data/
+    └── mockCalendarData.ts   # Mock data (fallback)
+```
+
+## 📝 License
+
+MIT
