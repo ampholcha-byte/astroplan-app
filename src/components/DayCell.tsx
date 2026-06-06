@@ -88,8 +88,13 @@ export default function DayCell({ day, onClick }: DayCellProps) {
           </>
         )}
 
-        {/* Cloud cover */}
-        <span className="text-[8px] opacity-70">☁ {day.cloudCoverPercentage}%</span>
+        {/* Cloud cover + source indicator */}
+        <div className="flex items-center gap-0.5 text-[8px] opacity-70">
+          <span>☁ {day.cloudCoverPercentage}%</span>
+          {day.cloudSource === 'api' && (
+            <span className="text-emerald-400" title="Live weather data">●</span>
+          )}
+        </div>
       </div>
 
       {/* Path graphic */}

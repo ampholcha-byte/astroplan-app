@@ -7,7 +7,7 @@ export async function geocodePlaceName(query: string): Promise<Coordinates> {
     q: query,
     format: 'json',
     limit: '1',
-    countrycodes: 'th',
+    // countrycodes removed — support global locations (Phase 2)
   });
 
   const response = await fetch(`${NOMINATIM_URL}?${params}`, {

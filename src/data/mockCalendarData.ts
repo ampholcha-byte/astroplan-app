@@ -45,6 +45,8 @@ function createMockDay(
       moonLevel: 1,
       moonPercentage: 0,
       cloudCoverPercentage: 0,
+      cloudSource: 'mock',
+      weather: null,
       galacticCenter: null,
       visibility: 'hidden',
     };
@@ -84,6 +86,8 @@ function createMockDay(
     moonLevel,
     moonPercentage,
     cloudCoverPercentage,
+    cloudSource: 'mock',
+    weather: null,
     galacticCenter: visibility === 'visible'
       ? {
           rise: `${String(gcRiseHour).padStart(2, '0')}:${String(gcRiseMin).padStart(2, '0')}`,

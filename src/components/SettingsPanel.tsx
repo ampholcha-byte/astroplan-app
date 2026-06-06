@@ -106,6 +106,27 @@ export default function SettingsPanel({ settings, onSettingsChange, onClose }: S
             </button>
           </div>
 
+          {/* Weather API Key */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+              🌤 Weather API Key (OpenWeatherMap)
+            </label>
+            <input
+              type="password"
+              value={local.weatherApiKey}
+              onChange={(e) => setLocal({ ...local, weatherApiKey: e.target.value })}
+              placeholder="Enter your OpenWeatherMap API key"
+              className="w-full px-3 py-2 text-sm border border-slate-600 rounded-lg bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Get a free key at{' '}
+              <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                openweathermap.org/api
+              </a>
+              {' '}— Leave empty to use mock data.
+            </p>
+          </div>
+
           {/* Divider */}
           <div className="border-t border-slate-700/50" />
 

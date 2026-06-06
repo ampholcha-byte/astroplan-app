@@ -135,6 +135,7 @@ export default function DayDetailsModal({ day, onClose }: DayDetailsModalProps) 
                 <div className="text-xs text-gray-200 font-medium">{day.cloudCoverPercentage}%</div>
                 <div className="text-[10px] text-gray-400 mt-0.5">
                   {day.cloudCoverPercentage < 30 ? 'Clear' : day.cloudCoverPercentage < 60 ? 'Partly Cloudy' : 'Mostly Cloudy'}
+                  {day.cloudSource === 'api' && <span className="text-emerald-400 ml-1">● Live</span>}
                 </div>
               </div>
 
