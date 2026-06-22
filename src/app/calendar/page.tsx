@@ -13,6 +13,8 @@ import DayDetailsModal from '@/components/calendar/DayDetailsModal';
 import BestDaysSummary from '@/components/calendar/BestDaysSummary';
 import SettingsPanel from '@/components/layout/SettingsPanel';
 import NotificationBanner from '@/components/shared/NotificationBanner';
+import TonightForecast from '@/components/calendar/TonightForecast';
+import ScoreFilter, { ScoreMode, calcWeightedScore } from '@/components/calendar/ScoreFilter';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -132,6 +134,7 @@ export default function CalendarPage() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
   const fetchedRef = useRef<string>('');
 
   const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
@@ -216,13 +219,22 @@ export default function CalendarPage() {
   }, []);
 
   const goodDays = calendar.days.filter(
-    (d) => d.visibility === 'visible' && d.moonLevel <= 4 && (d.cloudCoverPercentage === null || d.cloudCoverPercentage < 50)
+    (d) => calcWeightedScore(d, scoreMode) >= 60
   ).length;
 
   const apiDays = calendar.days.filter((d) => d.cloudSource === 'api').length;
 
   const now = new Date();
   const isCurrentMonth = calendar.month === now.getMonth() && calendar.year === now.getFullYear();
+
+  // Find today and tomorrow in calendar days
+  const todayDate = now.getDate();
+  const todayDay = calendar.days.find((d) => d.date === todayDate && d.id.startsWith(`${calendar.year}-${String(calendar.month + 1).padStart(2, '0')}`));
+  const tomorrowDay = calendar.days.find((d) => {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return d.date === tomorrow.getDate() && d.id.startsWith(`${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}`);
+  });
 
   return (
     <PageWrapper>
@@ -238,6 +250,11 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {/* Tonight's Forecast Card */}
+      {isCurrentMonth && todayDay && (
+        <TonightForecast today={todayDay} tomorrow={tomorrowDay} onDayClick={setSelectedDay} />
+      )}
+
       {/* Weather status */}
       <div className="flex items-center gap-2 mb-2">
         {weatherLoading && (
@@ -250,6 +267,9 @@ export default function CalendarPage() {
           <span className="text-[10px] text-yellow-400">⚠️ No forecast data (date out of 7-day range)</span>
         )}
       </div>
+
+      {/* Score Filter */}
+      <ScoreFilter mode={scoreMode} onChange={setScoreMode} />
 
       {/* Month navigation */}
       <div className="flex items-center justify-between w-full mb-3">
