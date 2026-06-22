@@ -88,14 +88,22 @@ function estimateFromLocation(lat: number, lng: number): LightPollutionData | nu
     [-54.3, -67.5, 21.8],   // Tierra del Fuego
     [35.3, 25.4, 21.5],     // Crete, Greece
 
-    // Thailand dark sky
-    [18.58, 98.48, 21.5],   // Doi Inthanon
-    [14.44, 101.37, 20.8],  // Khao Yai
-    [19.30, 97.97, 21.2],   // Mae Hong Son
-    [8.92, 98.53, 21.3],    // Khao Sok
-    [19.40, 98.87, 21.6],   // Doi Chiang Dao
+    // Thailand dark sky (northern highlands — typically Bortle 2-3)
+    [18.58, 98.48, 21.85],  // Doi Inthanon summit
+    [19.40, 98.87, 21.9],   // Doi ChiangDao summit
+    [19.07, 98.35, 21.95],  // Doi Mae Tho / Mo Hon Khao area
+    [18.92, 98.97, 21.8],   // Doi Luang (Chiang Rai)
+    [18.79, 98.98, 21.88],  // Doi Pha Hom Pok
+    [19.17, 99.17, 21.85],  // Phrae backcountry
+    [19.91, 99.83, 21.7],   // Chiang Rai rural
 
-    // Major cities (high pollution)
+    // Thailand mid / south (typically Bortle 3-5)
+    [14.44, 101.37, 21.3],  // Khao Yai
+    [8.92, 98.53, 21.5],    // Khao Sok
+    [12.62, 102.12, 21.0],  // Koh Chang
+    [15.38, 100.03, 20.5],  // Lopburi rural
+
+    // Thailand cities (Bortle 6-9)
     [13.75, 100.50, 17.5],  // Bangkok
     [18.79, 98.98, 18.8],   // Chiang Mai
     [7.88, 98.39, 18.5],    // Phuket
