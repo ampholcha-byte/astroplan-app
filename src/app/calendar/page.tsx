@@ -123,6 +123,22 @@ function buildMonth(
   return { year, month, days };
 }
 
+function getBortleColor(scale: number): string {
+  // Returns a hex color for the Bortle scale (1=darkest, 9=brightest)
+  const colors: Record<number, string> = {
+    1: '#9ca3af', // gray-400
+    2: '#93c5fd', // blue-300
+    3: '#67e8f9', // cyan-300
+    4: '#86efac', // green-300
+    5: '#fde047', // yellow-300
+    6: '#fdba74', // orange-300
+    7: '#fb923c', // orange-400
+    8: '#f87171', // red-400
+    9: '#ef4444', // red-500
+  };
+  return colors[scale] ?? '#64748b';
+}
+
 export default function CalendarPage() {
   const [calendar, setCalendar] = useState<CalendarMonth>(() =>
     buildMonth(new Date().getFullYear(), new Date().getMonth(), DEFAULT_LAT, DEFAULT_LNG, {}, null)
@@ -241,12 +257,31 @@ export default function CalendarPage() {
       {/* Location search */}
       <LocationSearch onLocationSelect={handleLocationSelect} />
 
-      {/* Location display */}
+      {/* Location display — compact with light pollution badge */}
       {location && (
-        <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 mb-3">
-          <p className="text-xs text-slate-400 text-center truncate max-w-full">
-            📍 {location.displayName} ({coords.lat.toFixed(2)}°, {coords.lng.toFixed(2)}°)
-          </p>
+        <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 mb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-slate-300 font-medium truncate">
+                📍 {location.displayName}
+              </p>
+              <p className="text-[10px] text-slate-500">
+                {coords.lat.toFixed(2)}°, {coords.lng.toFixed(2)}°
+              </p>
+            </div>
+            {lightPollution && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: getBortleColor(lightPollution.bortleScale) }}
+                  title={`Bortle ${lightPollution.bortleScale}: ${lightPollution.label}`}
+                />
+                <span className="text-[10px] text-slate-400">
+                  B{lightPollution.bortleScale}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
