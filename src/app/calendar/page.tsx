@@ -123,6 +123,28 @@ function buildMonth(
   return { year, month, days };
 }
 
+/**
+ * Shorten location display name.
+ * "Chiang Mai, Chiang Mai District, Chiang Mai 50000, Thailand"
+ * → "Chiang Mai, Chiang Mai District"
+ */
+function shortLocationName(displayName: string): string {
+  // Nominatim format: "Name, District, Province, Postal, Country"
+  // We want: "Name, Province" or "Name, District"
+  const parts = displayName.split(',').map((s) => s.trim()).filter(Boolean);
+
+  if (parts.length <= 2) return displayName; // Already short
+
+  // Take first (city/town) + second (district/province) parts
+  // Skip postal code (usually 5 digits) and country
+  const filtered = parts.filter((p) => !/^\d{5}$/.test(p) && !/^(Thailand|United States|Japan|Australia|UK|Germany|France|China|Korea|India)$/i.test(p));
+
+  if (filtered.length >= 2) {
+    return `${filtered[0]}, ${filtered[1]}`;
+  }
+  return filtered[0] || displayName;
+}
+
 function getBortleColor(scale: number): string {
   // Returns a hex color for the Bortle scale (1=darkest, 9=brightest)
   const colors: Record<number, string> = {
@@ -257,29 +279,25 @@ export default function CalendarPage() {
       {/* Location search */}
       <LocationSearch onLocationSelect={handleLocationSelect} />
 
-      {/* Location display — compact with light pollution badge */}
+      {/* Location display — name + province, light pollution color bar */}
       {location && (
-        <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 mb-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-300 font-medium truncate">
-                📍 {location.displayName}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                {coords.lat.toFixed(2)}°, {coords.lng.toFixed(2)}°
-              </p>
-            </div>
+        <div className="rounded-lg overflow-hidden mb-3 border border-slate-700/50">
+          {/* Light pollution color bar (top) */}
+          {lightPollution && (
+            <div
+              className="h-1.5 w-full"
+              style={{ backgroundColor: getBortleColor(lightPollution.bortleScale) }}
+              title={`Bortle ${lightPollution.bortleScale}: ${lightPollution.label} (${lightPollution.brightness} mpsas)`}
+            />
+          )}
+          <div className="bg-slate-800/60 px-3 py-2 flex items-center justify-between gap-2">
+            <p className="text-sm text-slate-200 font-medium truncate">
+              📍 {shortLocationName(location.displayName)}
+            </p>
             {lightPollution && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: getBortleColor(lightPollution.bortleScale) }}
-                  title={`Bortle ${lightPollution.bortleScale}: ${lightPollution.label}`}
-                />
-                <span className="text-[10px] text-slate-400">
-                  B{lightPollution.bortleScale}
-                </span>
-              </div>
+              <span className="text-[10px] text-slate-500 shrink-0">
+                {lightPollution.label}
+              </span>
             )}
           </div>
         </div>
