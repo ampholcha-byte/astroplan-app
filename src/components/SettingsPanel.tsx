@@ -106,9 +106,9 @@ export default function SettingsPanel({ settings, onSettingsChange, onClose }: S
             </button>
           </div>
 
-          {/* Weather API Key */}
+          {/* Weather info */}
           <div className="text-center py-4">
-            <p className="text-xs text-slate-500">🌤 Weather data from Open-Meteo (free, no API key)</p>
+            <p className="text-xs text-slate-500">🌤 Weather data from Open-Meteo (free, no API key required)</p>
           </div>
 
           {/* Divider */}

@@ -143,7 +143,7 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                 </div>
                 <div className="text-[10px] text-gray-400 mt-0.5">
                   {day.cloudCoverPercentage === null
-                    ? 'Set API key in Settings'
+                    ? 'No forecast data'
                     : day.cloudCoverPercentage < 30
                       ? 'Clear'
                       : day.cloudCoverPercentage < 60

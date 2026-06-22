@@ -68,21 +68,27 @@ test.describe('AstroPlan App', () => {
     await page.locator('button[title="Settings"]').click();
     await page.waitForTimeout(1000);
 
-    const apiKeyInput = page.locator('input[type="password"]');
-    await apiKeyInput.fill('test-api-key-123');
+    // Change latitude to verify persistence
+    const latInput = page.locator('input[type="number"]').first();
+    await latInput.fill('18.7883');
     await page.getByText('Save Settings').click();
     await page.waitForTimeout(1000);
+
+    // Close settings
+    await page.locator('button').filter({ hasText: /×|x/ }).last().click();
+    await page.waitForTimeout(500);
 
     // Reload
     await page.reload();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
+    // Re-open settings and verify latitude persisted
     await page.locator('button[title="Settings"]').click();
     await page.waitForTimeout(1000);
 
-    const savedKey = await page.locator('input[type="password"]').inputValue();
-    expect(savedKey).toBe('test-api-key-123');
+    const savedLat = await page.locator('input[type="number"]').first().inputValue();
+    expect(savedLat).toBe('18.7883');
   });
 
   test('best days summary shows ranked list', async ({ page }) => {
