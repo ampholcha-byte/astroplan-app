@@ -11,7 +11,7 @@ function getDayScore(day: DayData): number {
   if (day.visibility === 'hidden') return 0;
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
-  score -= day.cloudCoverPercentage * 0.5;
+  if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
   // Bonus for dark sky (low light pollution)
   if (day.lightPollution) {
     score -= (day.lightPollution.bortleScale - 1) * 3;

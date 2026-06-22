@@ -25,10 +25,24 @@ export default function NotificationBanner({ days }: NotificationBannerProps) {
     setSettings(getNotificationSettings());
   }, []);
 
-  // Check for good days on mount and when days change
+  // Check for good days on mount and when days change.
+  // Only trigger if the target date is within the current calendar month
+  // to avoid re-triggering when switching months.
   useEffect(() => {
+    if (days.length === 0) return;
+
     const msg = checkGoodDays(days, settings);
     if (msg) {
+      // Verify the target date actually exists in the current calendar
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDate = new Date(today);
+      targetDate.setDate(targetDate.getDate() + settings.daysAhead);
+      const targetStr = targetDate.toISOString().slice(0, 10);
+
+      const targetInCurrentMonth = days.some((d) => d.id === targetStr);
+      if (!targetInCurrentMonth) return;
+
       setNotifMessage(msg);
       if ('Notification' in window && Notification.permission === 'granted') {
         showNotification(msg.title, msg.body);

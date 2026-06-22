@@ -25,8 +25,8 @@ html, body {
   border-radius: 3px;
 }
 
-/* Smooth transitions globally */
-* {
+/* Smooth transitions for interactive elements only */
+button, a, input, select, textarea {
   transition-property: background-color, border-color, opacity;
   transition-duration: 150ms;
   transition-timing-function: ease;

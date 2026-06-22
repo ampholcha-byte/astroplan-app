@@ -14,10 +14,9 @@ import {
 interface ChecklistPanelProps {
   dateId: string;
   location: string;
-  onClose: () => void;
 }
 
-export default function ChecklistPanel({ dateId, location, onClose }: ChecklistPanelProps) {
+export default function ChecklistPanel({ dateId, location }: ChecklistPanelProps) {
   const [checklist, setChecklist] = useState<DayChecklist | null>(null);
   const [newItemText, setNewItemText] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);

@@ -1,9 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
-import { getMoonLevel, getGalacticCenterTimes, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
-import { getMockCloudCover } from '@/lib/weather';
+import { getMoonLevel, getGCNightWindow, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from './actions';
 import LocationSearch from '@/components/LocationSearch';
 import CalendarGrid from '@/components/CalendarGrid';
@@ -20,22 +21,37 @@ const MONTH_NAMES = [
 const DEFAULT_LAT = 13.7563;
 const DEFAULT_LNG = 100.5018;
 
+const SETTINGS_STORAGE_KEY = 'astroplan-settings';
+
 const DEFAULT_SETTINGS: AppSettings = {
   latitude: DEFAULT_LAT,
   longitude: DEFAULT_LNG,
   timezone: 'Asia/Bangkok',
   useGPS: false,
-  weatherApiKey: '',
 };
 
-// ── Sync day creator (uses pre-fetched weather cache) ──
+function loadSettings(): AppSettings {
+  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettingsToStorage(s: AppSettings) {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
+  } catch { /* ignore */ }
+}
+
 function createDay(
   year: number,
   month: number,
   date: number,
   lat: number,
   lng: number,
-  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>,
+  weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }>,
   lightPollutionCache: LightPollutionData | null
 ): DayData {
   const id = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
@@ -43,16 +59,13 @@ function createDay(
 
   const moon = getMoonLevel(dateObj);
   const gcVisible = isGalacticCenterVisible(dateObj, lat, lng);
-  const galacticCenter = gcVisible ? getGalacticCenterTimes(dateObj, lat, lng) : null;
+  const galacticCenter = gcVisible ? getGCNightWindow(dateObj, lat, lng) : null;
 
-  // Use cached weather or fallback to mock
   const cached = weatherCache[date];
-  const weather = cached?.weather ?? getMockCloudCover(dateObj);
-  const cloudSource: CloudSource = cached?.source ?? 'mock';
+  const weather = cached?.weather ?? null;
+  const cloudSource: CloudSource = cached?.source ?? 'none';
 
-  const isHoliday = date === 1 || date === 15 || date % 7 === 0;
-
-  // Calculate sun & moon times
+  const isHoliday = date === 1;
   const sunMoon = getSunMoonTimes(dateObj, lat, lng);
 
   return {
@@ -61,7 +74,7 @@ function createDay(
     isHoliday,
     moonLevel: moon.level,
     moonPercentage: Math.round(moon.fraction * 100),
-    cloudCoverPercentage: weather.cloudCoverPercentage,
+    cloudCoverPercentage: weather?.cloudCoverPercentage ?? null,
     cloudSource,
     weather,
     galacticCenter,
@@ -76,14 +89,13 @@ function buildMonth(
   month: number,
   lat: number,
   lng: number,
-  weatherCache: Record<number, { weather: WeatherData; source: CloudSource }>,
+  weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }>,
   lightPollutionCache: LightPollutionData | null
 ): CalendarMonth {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const days: DayData[] = [];
 
-  // Previous month padding
   const prevMonthDays = new Date(year, month, 0).getDate();
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     const d = prevMonthDays - i;
@@ -93,12 +105,10 @@ function buildMonth(
     days.push(createDay(y, mi, d, lat, lng, weatherCache, lightPollutionCache));
   }
 
-  // Current month
   for (let d = 1; d <= daysInMonth; d++) {
     days.push(createDay(year, month, d, lat, lng, weatherCache, lightPollutionCache));
   }
 
-  // Next month padding
   const remaining = 35 - days.length;
   for (let d = 1; d <= remaining; d++) {
     const m = month + 1;
@@ -117,34 +127,46 @@ export default function Home() {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [coords, setCoords] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const fetchedRef = useRef<string>('');
 
   const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
   const lpFetchedRef = useRef<string>('');
+  const weatherCacheRef = useRef<Record<number, { weather: WeatherData | null; source: CloudSource }>>({});
+
+  // Load settings from localStorage after mount (avoids hydration mismatch)
+  useEffect(() => {
+    setSettings(loadSettings());
+    setSettingsLoaded(true);
+  }, []);
+
+  const buildAndApply = useCallback(
+    (year: number, month: number, weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }>, lp: LightPollutionData | null) => {
+      setCalendar(buildMonth(year, month, coords.lat, coords.lng, weatherCache, lp));
+    },
+    [coords]
+  );
 
   const regenerateCalendar = useCallback(
     async (year: number, month: number) => {
       const cacheKey = `${year}-${month}-${coords.lat.toFixed(4)}-${coords.lng.toFixed(4)}`;
 
-      // Fetch weather data from server action
-      let weatherCache: Record<number, { weather: WeatherData; source: CloudSource }> = {};
-
-      if (settings.weatherApiKey && fetchedRef.current !== cacheKey) {
-        setWeatherLoading(true);
-        fetchedRef.current = cacheKey;
-        try {
-          weatherCache = await fetchWeatherForMonth(year, month, coords.lat, coords.lng, settings.weatherApiKey);
-        } catch (err) {
-          console.warn('Weather fetch failed, using mock:', err);
-        } finally {
-          setWeatherLoading(false);
-        }
+      // Always fetch weather for this month (cache is invalidated by cacheKey change)
+      let weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }> = {};
+      setWeatherLoading(true);
+      fetchedRef.current = cacheKey;
+      try {
+        weatherCache = await fetchWeatherForMonth(year, month, coords.lat, coords.lng);
+        weatherCacheRef.current = weatherCache;
+      } catch (err) {
+        console.warn('Weather fetch failed:', err);
+      } finally {
+        setWeatherLoading(false);
       }
 
-      // Fetch light pollution data (once per location)
       const lpKey = `${coords.lat.toFixed(4)}-${coords.lng.toFixed(4)}`;
       if (lpFetchedRef.current !== lpKey) {
         lpFetchedRef.current = lpKey;
@@ -156,10 +178,16 @@ export default function Home() {
         }
       }
 
-      setCalendar(buildMonth(year, month, coords.lat, coords.lng, weatherCache, lightPollution));
+      buildAndApply(year, month, weatherCache, lightPollution);
     },
-    [coords, settings.weatherApiKey, lightPollution]
+    [coords, lightPollution, buildAndApply]
   );
+
+  useEffect(() => {
+    if (lightPollution && lpFetchedRef.current) {
+      buildAndApply(calendar.year, calendar.month, weatherCacheRef.current, lightPollution);
+    }
+  }, [lightPollution, buildAndApply, calendar.year, calendar.month]);
 
   useEffect(() => {
     regenerateCalendar(calendar.year, calendar.month);
@@ -177,18 +205,25 @@ export default function Home() {
     regenerateCalendar(ny, nm);
   };
 
+  const handleSettingsChange = useCallback((newSettings: AppSettings) => {
+    setSettings(newSettings);
+    saveSettingsToStorage(newSettings);
+  }, []);
+
   const handleLocationSelect = useCallback((newCoords: Coordinates) => {
     setLocation(newCoords);
     setCoords({ lat: newCoords.lat, lng: newCoords.lng });
-    fetchedRef.current = ''; // Invalidate cache for new location
+    fetchedRef.current = '';
   }, []);
 
   const goodDays = calendar.days.filter(
-    (d) => d.visibility === 'visible' && d.moonLevel <= 4 && d.cloudCoverPercentage < 50
+    (d) => d.visibility === 'visible' && d.moonLevel <= 4 && (d.cloudCoverPercentage === null || d.cloudCoverPercentage < 50)
   ).length;
 
-  // Count how many days have real API data
   const apiDays = calendar.days.filter((d) => d.cloudSource === 'api').length;
+
+  const now = new Date();
+  const isCurrentMonth = calendar.month === now.getMonth() && calendar.year === now.getFullYear();
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center">
@@ -232,13 +267,10 @@ export default function Home() {
             <span className="text-[10px] text-indigo-400 animate-pulse">⏳ Loading weather...</span>
           )}
           {!weatherLoading && apiDays > 0 && (
-            <span className="text-[10px] text-emerald-400">🌤 Live weather data</span>
+            <span className="text-[10px] text-emerald-400">🌤 Live weather (Open-Meteo)</span>
           )}
-          {!weatherLoading && apiDays === 0 && settings.weatherApiKey && (
-            <span className="text-[10px] text-yellow-400">⚠️ Using forecast (date out of 5-day range)</span>
-          )}
-          {!weatherLoading && !settings.weatherApiKey && (
-            <span className="text-[10px] text-slate-500">📊 Mock cloud data (set API key in Settings)</span>
+          {!weatherLoading && apiDays === 0 && (
+            <span className="text-[10px] text-yellow-400">⚠️ No forecast data (date out of 7-day range)</span>
           )}
         </div>
 
@@ -250,7 +282,7 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="text-center">
+          <div className="text-center flex-1 mx-2">
             <span className="text-base font-semibold text-white">
               {MONTH_NAMES[calendar.month]} {calendar.year}
             </span>
@@ -267,6 +299,19 @@ export default function Home() {
             ›
           </button>
         </div>
+
+        {/* Today button — hidden when already on current month */}
+        {!isCurrentMonth && (
+          <button
+            onClick={() => {
+              fetchedRef.current = '';
+              regenerateCalendar(now.getFullYear(), now.getMonth());
+            }}
+            className="mb-3 px-4 py-1.5 text-xs font-medium rounded-full bg-indigo-600/80 hover:bg-indigo-500 text-white transition-colors"
+          >
+            📅 Today
+          </button>
+        )}
 
         {/* Legend */}
         <div className="flex items-center gap-3 mb-2 text-[10px] text-slate-500">
@@ -299,7 +344,7 @@ export default function Home() {
       {showSettings && (
         <SettingsPanel
           settings={settings}
-          onSettingsChange={setSettings}
+          onSettingsChange={handleSettingsChange}
           onClose={() => setShowSettings(false)}
         />
       )}

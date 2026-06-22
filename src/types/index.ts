@@ -1,6 +1,6 @@
 export type MoonLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type VisibilityState = 'visible' | 'hidden';
-export type CloudSource = 'api' | 'mock';
+export type CloudSource = 'api' | 'none';
 
 export interface WeatherData {
   cloudCoverPercentage: number;
@@ -39,7 +39,7 @@ export interface DayData {
   isHoliday: boolean;
   moonLevel: MoonLevel;
   moonPercentage: number;
-  cloudCoverPercentage: number;
+  cloudCoverPercentage: number | null;
   cloudSource: CloudSource;
   weather: WeatherData | null;
   galacticCenter: GalacticCenterTime | null;
@@ -81,5 +81,4 @@ export interface AppSettings {
   longitude: number;
   timezone: string;
   useGPS: boolean;
-  weatherApiKey: string;
 }

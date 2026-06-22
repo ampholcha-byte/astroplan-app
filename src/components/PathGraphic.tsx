@@ -2,7 +2,7 @@ export default function PathGraphic() {
   return (
     <svg
       viewBox="0 0 60 20"
-      className="w-full h-3 opacity-40"
+      className="w-full h-3 opacity-40 text-current"
       preserveAspectRatio="none"
     >
       <text x="2" y="16" fontSize="7" fill="currentColor">E</text>

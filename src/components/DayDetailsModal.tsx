@@ -45,7 +45,9 @@ function getShootingAdvice(day: DayData): string[] {
     tips.push('🌕 Bright moon — Milky Way core will be washed out.');
   }
 
-  if (day.cloudCoverPercentage < 20) {
+  if (day.cloudCoverPercentage === null) {
+    tips.push('☁️ No cloud forecast available — check weather before heading out.');
+  } else if (day.cloudCoverPercentage < 20) {
     tips.push('☀️ Clear skies expected — great for shooting!');
   } else if (day.cloudCoverPercentage < 50) {
     tips.push('⛅ Partly cloudy — some clear patches possible.');
@@ -54,7 +56,7 @@ function getShootingAdvice(day: DayData): string[] {
   }
 
   if (day.galacticCenter) {
-    tips.push(`🌌 GC visible from ${day.galacticCenter.rise} to ${day.galacticCenter.set}`);
+    tips.push(`🌌 GC visible (dark night) ${day.galacticCenter.rise} – ${day.galacticCenter.set}`);
   }
 
   return tips;
@@ -65,7 +67,7 @@ function getOverallScore(day: DayData): { score: number; label: string; color: s
 
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
-  score -= day.cloudCoverPercentage * 0.5;
+  if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   if (score >= 80) return { score, label: 'Excellent', color: 'text-green-400' };
@@ -132,30 +134,42 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
 
               {/* Cloud */}
               <div className="bg-slate-700/30 rounded-lg p-3">
-                <div className="text-2xl mb-1">{day.cloudCoverPercentage < 30 ? '☀️' : day.cloudCoverPercentage < 60 ? '⛅' : '☁️'}</div>
+                <div className="text-2xl mb-1">
+                  {day.cloudCoverPercentage === null ? '❓' : day.cloudCoverPercentage < 30 ? '☀️' : day.cloudCoverPercentage < 60 ? '⛅' : '☁️'}
+                </div>
                 <div className="text-[10px] text-gray-500 uppercase tracking-wide">Cloud Cover</div>
-                <div className="text-xs text-gray-200 font-medium">{day.cloudCoverPercentage}%</div>
+                <div className="text-xs text-gray-200 font-medium">
+                  {day.cloudCoverPercentage !== null ? `${day.cloudCoverPercentage}%` : 'No data'}
+                </div>
                 <div className="text-[10px] text-gray-400 mt-0.5">
-                  {day.cloudCoverPercentage < 30 ? 'Clear' : day.cloudCoverPercentage < 60 ? 'Partly Cloudy' : 'Mostly Cloudy'}
+                  {day.cloudCoverPercentage === null
+                    ? 'Set API key in Settings'
+                    : day.cloudCoverPercentage < 30
+                      ? 'Clear'
+                      : day.cloudCoverPercentage < 60
+                        ? 'Partly Cloudy'
+                        : 'Mostly Cloudy'}
                   {day.cloudSource === 'api' && <span className="text-emerald-400 ml-1">● Live</span>}
                 </div>
               </div>
 
-              {/* GC Rise */}
+              {/* GC Rise — during dark night */}
               {day.galacticCenter && (
                 <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="text-2xl mb-1">🌅</div>
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wide">GC Rise</div>
+                  <div className="text-2xl mb-1">🌌</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wide">GC Rise 🌙</div>
                   <div className="text-lg text-emerald-400 font-bold">{day.galacticCenter.rise}</div>
+                  <div className="text-[9px] text-gray-600">dark night</div>
                 </div>
               )}
 
-              {/* GC Set */}
+              {/* GC Set — during dark night */}
               {day.galacticCenter && (
                 <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="text-2xl mb-1">🌇</div>
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wide">GC Set</div>
+                  <div className="text-2xl mb-1">🌌</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wide">GC Set 🌙</div>
                   <div className="text-lg text-rose-400 font-bold">{day.galacticCenter.set}</div>
+                  <div className="text-[9px] text-gray-600">dark night</div>
                 </div>
               )}
             </div>
@@ -287,7 +301,7 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
             </div>
 
             {/* Checklist */}
-            <ChecklistPanel dateId={day.id} location={locationName ?? ''} onClose={() => {}} />
+            <ChecklistPanel dateId={day.id} location={locationName ?? ''} />
           </>
         )}
       </div>

@@ -6,6 +6,7 @@ import PathGraphic from './PathGraphic';
 interface DayCellProps {
   day: DayData;
   onClick: () => void;
+  isToday?: boolean;
 }
 
 // Moon level → background gradient
@@ -40,13 +41,18 @@ const MOON_TEXT: Record<number, string> = {
 // Shooting quality label
 function getQualityLabel(day: DayData): { label: string; color: string } | null {
   if (day.visibility === 'hidden') return null;
+  // Can't rate quality without cloud data — only rate if we have API data
+  if (day.cloudCoverPercentage === null) {
+    if (day.moonLevel <= 4) return { label: '★', color: 'text-slate-400' };
+    return null;
+  }
   if (day.moonLevel <= 2 && day.cloudCoverPercentage < 30) return { label: '★★★', color: 'text-green-400' };
   if (day.moonLevel <= 4 && day.cloudCoverPercentage < 50) return { label: '★★', color: 'text-yellow-400' };
   if (day.moonLevel <= 6) return { label: '★', color: 'text-orange-400' };
   return null;
 }
 
-export default function DayCell({ day, onClick }: DayCellProps) {
+export default function DayCell({ day, onClick, isToday }: DayCellProps) {
   const isHidden = day.visibility === 'hidden';
   const bgColor = MOON_BG[day.moonLevel] || MOON_BG[1];
   const textColor = MOON_TEXT[day.moonLevel] || MOON_TEXT[1];
@@ -55,9 +61,9 @@ export default function DayCell({ day, onClick }: DayCellProps) {
   return (
     <button
       type="button"
-      className={`${bgColor} ${textColor} aspect-square flex flex-col items-center justify-between p-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''}`}
+      className={`${bgColor} ${textColor} aspect-square flex flex-col items-center justify-between p-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900 z-10' : ''}`}
       onClick={onClick}
-      aria-label={`Day ${day.date}, moon level ${day.moonLevel}, cloud ${day.cloudCoverPercentage}%`}
+      aria-label={`Day ${day.date}, moon level ${day.moonLevel}, cloud ${day.cloudCoverPercentage !== null ? day.cloudCoverPercentage + '%' : 'no data'}${isToday ? ' (today)' : ''}`}
     >
       {/* Holiday triangle */}
       {day.isHoliday && (
@@ -67,21 +73,21 @@ export default function DayCell({ day, onClick }: DayCellProps) {
       {/* Date number */}
       <span className="text-[11px] font-bold self-start">{day.date}</span>
 
+      {/* Quality stars — top right (replaces old indigo dot) */}
+      {quality && (
+        <span className={`absolute top-0.5 right-0.5 text-[10px] font-bold ${quality.color}`}>{quality.label}</span>
+      )}
+
       {/* Center info */}
       <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-        {/* Quality stars */}
-        {quality && (
-          <span className={`text-[10px] font-bold ${quality.color}`}>{quality.label}</span>
-        )}
-
-        {/* Galactic Center rise/set */}
+        {/* Galactic Center rise/set — clamped to Astronomical Night */}
         {day.galacticCenter && (
           <>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight">
+            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC visible (dark night)">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
               <span>{day.galacticCenter.rise}</span>
             </div>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight">
+            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC sets (dark night ends)">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 shadow-sm shadow-rose-400/50" />
               <span>{day.galacticCenter.set}</span>
             </div>
@@ -90,9 +96,15 @@ export default function DayCell({ day, onClick }: DayCellProps) {
 
         {/* Cloud cover + source indicator */}
         <div className="flex items-center gap-0.5 text-[8px] opacity-70">
-          <span>☁ {day.cloudCoverPercentage}%</span>
-          {day.cloudSource === 'api' && (
-            <span className="text-emerald-400" title="Live weather data">●</span>
+          {day.cloudCoverPercentage !== null ? (
+            <>
+              <span>☁ {day.cloudCoverPercentage}%</span>
+              {day.cloudSource === 'api' && (
+                <span className="text-emerald-400" title="Live weather data">●</span>
+              )}
+            </>
+          ) : (
+            <span className="text-slate-500">☁ —</span>
           )}
         </div>
       </div>

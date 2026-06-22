@@ -26,98 +26,105 @@ function classifyBortle(brightness: number): { scale: number; label: string; col
 }
 
 /**
- * Estimate light pollution based on coordinates.
+ * Estimate light pollution based on coordinates using a global model.
  *
- * Uses the World Atlas of Artificial Night Sky Brightness data
- * via the lightpollutionmap.info API (tile-based).
+ * Uses the World Atlas of Artificial Night Sky Brightness (2015) data
+ * via lightpollutionmap.info's public query API.
  *
- * For simplicity in Phase 2, we use a proxy approach:
- * - Fetch from the lightpollutionmap.info API
- * - Fall back to estimation based on known dark sky locations in Thailand
+ * Falls back to a distance-based estimation from known reference points
+ * when the API is unavailable.
  */
 export async function getLightPollution(
   lat: number,
   lng: number
 ): Promise<LightPollutionData | null> {
   try {
-    // Light Pollution Map uses a specific API endpoint
-    // The map tiles encode brightness values; we use their data API
+    // lightpollutionmap.info public query endpoint
+    // Returns sky brightness in mpsas as plain text
     const url = `https://www.lightpollutionmap.info/QueryRaster/?ql=wa_2015&qt=point&qd=${lng},${lat}&key=`;
-    const res = await fetch(url, { next: { revalidate: 86400 } }); // cache 24h
+    const res = await fetch(url, {
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(5000),
+    });
 
-    if (!res.ok) {
-      return estimateFromLocation(lat, lng);
+    if (res.ok) {
+      const text = await res.text();
+      const brightness = parseFloat(text.trim());
+
+      if (!isNaN(brightness) && brightness > 0) {
+        const bortle = classifyBortle(brightness);
+        return {
+          brightness: Math.round(brightness * 100) / 100,
+          bortleScale: bortle.scale,
+          label: bortle.label,
+          color: bortle.color,
+        };
+      }
     }
-
-    const text = await res.text();
-    const brightness = parseFloat(text.trim());
-
-    if (isNaN(brightness) || brightness <= 0) {
-      return estimateFromLocation(lat, lng);
-    }
-
-    const bortle = classifyBortle(brightness);
-    return {
-      brightness: Math.round(brightness * 100) / 100,
-      bortleScale: bortle.scale,
-      label: bortle.label,
-      color: bortle.color,
-    };
   } catch {
-    return estimateFromLocation(lat, lng);
+    // API unavailable — fall through to estimation
   }
+
+  return estimateFromLocation(lat, lng);
 }
 
 /**
- * Fallback: estimate light pollution based on known locations.
- * Used when API is unavailable.
+ * Fallback: estimate light pollution from a global set of reference points.
+ * Uses inverse-distance weighting for interpolation.
  */
 function estimateFromLocation(lat: number, lng: number): LightPollutionData | null {
-  // Known dark sky locations in Thailand (approximate)
-  const darkSkyLocations = [
-    { name: 'Doi Inthanon', lat: 18.58, lng: 98.48, brightness: 21.5 },
-    { name: 'Khao Yai', lat: 14.44, lng: 101.37, brightness: 20.8 },
-    { name: 'Mae Hong Son', lat: 19.30, lng: 97.97, brightness: 21.2 },
-    { name: 'Pha Taem', lat: 15.52, lng: 105.60, brightness: 21.0 },
-    { name: 'Khao Sok', lat: 8.92, lng: 98.53, brightness: 21.3 },
-    { name: 'Doi Chiang Dao', lat: 19.40, lng: 98.87, brightness: 21.6 },
-    { name: 'Phu Kradueng', lat: 16.88, lng: 101.80, brightness: 21.0 },
-    { name: 'Erawan', lat: 14.38, lng: 99.15, brightness: 20.5 },
+  // Global reference points: [lat, lng, brightness_mpsas]
+  // Covers major dark sky areas and cities worldwide
+  const referencePoints: [number, number, number][] = [
+    // Dark sky reserves
+    [-33.7, 150.3, 21.7],   // Greater Blue Mountains, Australia
+    [-25.3, 131.0, 21.9],   // Uluru, Australia
+    [36.5, -118.6, 21.8],   // Death Valley, USA
+    [37.7, -119.5, 21.7],   // Yosemite, USA
+    [64.2, -15.2, 21.9],    // Iceland interior
+    [-22.9, -67.8, 21.9],   // Atacama Desert, Chile
+    [28.0, 86.9, 21.8],     // Himalayas
+    [78.0, 15.0, 21.9],     // Svalbard, Norway
+    [-54.3, -67.5, 21.8],   // Tierra del Fuego
+    [35.3, 25.4, 21.5],     // Crete, Greece
+
+    // Thailand dark sky
+    [18.58, 98.48, 21.5],   // Doi Inthanon
+    [14.44, 101.37, 20.8],  // Khao Yai
+    [19.30, 97.97, 21.2],   // Mae Hong Son
+    [8.92, 98.53, 21.3],    // Khao Sok
+    [19.40, 98.87, 21.6],   // Doi Chiang Dao
+
+    // Major cities (high pollution)
+    [13.75, 100.50, 17.5],  // Bangkok
+    [18.79, 98.98, 18.8],   // Chiang Mai
+    [7.88, 98.39, 18.5],    // Phuket
+    [35.68, 139.69, 16.8],  // Tokyo
+    [51.51, -0.13, 16.5],   // London
+    [40.71, -74.01, 16.0],  // New York
+    [37.57, 126.98, 16.2],  // Seoul
+    [31.23, 121.47, 15.8],  // Shanghai
+    [19.43, -99.13, 16.5],  // Mexico City
+    [-23.55, -46.63, 16.8], // São Paulo
+    [28.61, 77.23, 16.0],   // Delhi
+    [1.35, 103.82, 15.5],   // Singapore
   ];
 
-  // Major cities (high pollution)
-  const cities = [
-    { name: 'Bangkok', lat: 13.75, lng: 100.50, brightness: 17.5 },
-    { name: 'Chiang Mai', lat: 18.79, lng: 98.98, brightness: 18.8 },
-    { name: 'Phuket', lat: 7.88, lng: 98.39, brightness: 18.5 },
-    { name: 'Pattaya', lat: 12.92, lng: 100.88, brightness: 18.0 },
-    { name: 'Hat Yai', lat: 7.00, lng: 100.47, brightness: 18.2 },
-    { name: 'Khon Kaen', lat: 16.43, lng: 102.83, brightness: 19.0 },
-  ];
+  // Inverse-distance weighting (power=2)
+  let weightSum = 0;
+  let brightnessSum = 0;
 
-  // Find nearest location
-  let nearest = null;
-  let minDist = Infinity;
-
-  for (const loc of [...darkSkyLocations, ...cities]) {
-    const dist = Math.sqrt((lat - loc.lat) ** 2 + (lng - loc.lng) ** 2);
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = loc;
-    }
+  for (const [refLat, refLng, refBright] of referencePoints) {
+    const dist = Math.sqrt((lat - refLat) ** 2 + (lng - refLng) ** 2);
+    // Avoid division by zero for exact matches
+    const weight = 1 / (dist * dist + 0.001);
+    weightSum += weight;
+    brightnessSum += weight * refBright;
   }
 
-  if (!nearest) return null;
-
-  // Interpolate: if within ~50km of a known location, use its brightness
-  // Otherwise estimate based on distance from nearest city
-  let brightness = nearest.brightness;
-  if (minDist > 0.5) {
-    // More than ~50km away from known location, darken slightly
-    brightness = Math.min(21.99, nearest.brightness + 0.3);
-  }
-
+  const brightness = brightnessSum / weightSum;
   const bortle = classifyBortle(brightness);
+
   return {
     brightness: Math.round(brightness * 100) / 100,
     bortleScale: bortle.scale,

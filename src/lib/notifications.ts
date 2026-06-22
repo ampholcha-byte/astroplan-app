@@ -73,7 +73,7 @@ export function checkGoodDays(
   if (targetDay.visibility === 'hidden') return null;
   let score = 100;
   score -= (targetDay.moonLevel - 1) * 8;
-  score -= targetDay.cloudCoverPercentage * 0.5;
+  if (targetDay.cloudCoverPercentage !== null) score -= targetDay.cloudCoverPercentage * 0.5;
   if (targetDay.lightPollution) {
     score -= (targetDay.lightPollution.bortleScale - 1) * 3;
   }
@@ -87,11 +87,12 @@ export function checkGoodDays(
   if (lastNotified === todayStr) return null;
 
   const moonEmoji = targetDay.moonLevel <= 2 ? '🌑' : targetDay.moonLevel <= 5 ? '🌗' : '🌕';
-  const cloudEmoji = targetDay.cloudCoverPercentage < 30 ? '☀️' : targetDay.cloudCoverPercentage < 60 ? '⛅' : '☁️';
+  const cloudEmoji = targetDay.cloudCoverPercentage === null ? '❓' : targetDay.cloudCoverPercentage < 30 ? '☀️' : targetDay.cloudCoverPercentage < 60 ? '⛅' : '☁️';
+  const cloudText = targetDay.cloudCoverPercentage !== null ? `Cloud ${targetDay.cloudCoverPercentage}%` : 'Cloud: no data';
 
   return {
     title: `🌟 Good MW Shooting Day!`,
-    body: `${targetDay.id} — Score: ${score}/100 ${moonEmoji} Moon ${targetDay.moonPercentage}% ${cloudEmoji} Cloud ${targetDay.cloudCoverPercentage}%`,
+    body: `${targetDay.id} — Score: ${score}/100 ${moonEmoji} Moon ${targetDay.moonPercentage}% ${cloudEmoji} ${cloudText}`,
   };
 }
 
