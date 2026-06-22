@@ -1,7 +1,7 @@
 'use client';
 
 import { DayData } from '@/types';
-import PathGraphic from './PathGraphic';
+import PathGraphic from '@/components/shared/PathGraphic';
 
 interface DayCellProps {
   day: DayData;

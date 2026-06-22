@@ -1,7 +1,7 @@
 'use client';
 
 import { DayData } from '@/types';
-import ChecklistPanel from './ChecklistPanel';
+import ChecklistPanel from '@/components/planning/ChecklistPanel';
 
 interface DayDetailsModalProps {
   day: DayData;
