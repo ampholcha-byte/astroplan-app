@@ -195,6 +195,7 @@ export default function CalendarPage() {
     async (year: number, month: number) => {
       const cacheKey = `${year}-${month}-${coords.lat.toFixed(4)}-${coords.lng.toFixed(4)}`;
 
+      // Fetch weather
       let weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }> = {};
       setWeatherLoading(true);
       fetchedRef.current = cacheKey;
@@ -207,27 +208,26 @@ export default function CalendarPage() {
         setWeatherLoading(false);
       }
 
+      // Fetch light pollution and wait for it
       const lpKey = `${coords.lat.toFixed(4)}-${coords.lng.toFixed(4)}`;
+      let lpData: LightPollutionData | null = null;
       if (lpFetchedRef.current !== lpKey) {
         lpFetchedRef.current = lpKey;
         try {
-          const lp = await fetchLightPollution(coords.lat, coords.lng);
-          setLightPollution(lp);
+          lpData = await fetchLightPollution(coords.lat, coords.lng);
+          setLightPollution(lpData);
         } catch (err) {
           console.warn('Light pollution fetch failed:', err);
         }
+      } else {
+        lpData = lightPollution;
       }
 
-      buildAndApply(year, month, weatherCache, lightPollution);
+      // Apply calendar AFTER both fetches complete
+      buildAndApply(year, month, weatherCache, lpData);
     },
     [coords, lightPollution, buildAndApply]
   );
-
-  useEffect(() => {
-    if (lightPollution && lpFetchedRef.current) {
-      buildAndApply(calendar.year, calendar.month, weatherCacheRef.current, lightPollution);
-    }
-  }, [lightPollution, buildAndApply, calendar.year, calendar.month]);
 
   useEffect(() => {
     regenerateCalendar(calendar.year, calendar.month);
