@@ -51,7 +51,8 @@ export async function getLightPollution(
       const text = await res.text();
       const brightness = parseFloat(text.trim());
 
-      if (!isNaN(brightness) && brightness > 0) {
+      // Validate brightness range (typical mpsas: 15-22.5)
+      if (!isNaN(brightness) && brightness > 0 && brightness <= 22.5) {
         const bortle = classifyBortle(brightness);
         return {
           brightness: Math.round(brightness * 100) / 100,

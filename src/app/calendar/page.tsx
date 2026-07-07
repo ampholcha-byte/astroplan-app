@@ -236,12 +236,16 @@ export default function CalendarPage() {
   const handlePrevMonth = () => {
     const pm = calendar.month === 0 ? 11 : calendar.month - 1;
     const py = calendar.month === 0 ? calendar.year - 1 : calendar.year;
+    fetchedRef.current = '';
+    weatherCacheRef.current = {}; // Clear cache for new month
     regenerateCalendar(py, pm);
   };
 
   const handleNextMonth = () => {
     const nm = calendar.month === 11 ? 0 : calendar.month + 1;
     const ny = calendar.month === 11 ? calendar.year + 1 : calendar.year;
+    fetchedRef.current = '';
+    weatherCacheRef.current = {}; // Clear cache for new month
     regenerateCalendar(ny, nm);
   };
 
