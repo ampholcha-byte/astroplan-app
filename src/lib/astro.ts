@@ -178,8 +178,13 @@ function findAstronomicalDawn(date: Date, lat: number, lng: number): number {
     }
   }
 
-  // Fallback: if sun never reaches -18° (polar day/night edge cases)
-  return 5; // default to 05:00
+  // Fallback: use sunrise time if astronomical dawn cannot be found
+  // (polar regions or edge cases where sun never reaches -18°)
+  const times = SunCalc.getTimes(date, lat, lng) as SunCalc.SunTimes;
+  if (times.sunrise) {
+    return (times.sunrise.getHours() + times.sunrise.getMinutes() / 60);
+  }
+  return 5; // ultimate fallback
 }
 
 export function isGalacticCenterVisible(
