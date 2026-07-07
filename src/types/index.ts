@@ -29,6 +29,7 @@ export interface SunMoonTimes {
   blueHourEnd: string;
   nauticalDusk: string;
   nightStart: string;
+  astronomicalDawn: string;
   moonrise: string | null;
   moonset: string | null;
 }

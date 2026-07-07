@@ -242,7 +242,7 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                     <span className="text-lg">🌌</span>
                     <div>
                       <div className="text-[9px] text-indigo-400/70 uppercase">Astronomical Night (best for MW)</div>
-                      <div className="text-sm text-indigo-300 font-semibold">{day.sunMoon.nightStart} → {day.sunMoon.sunrise}</div>
+                      <div className="text-sm text-indigo-300 font-semibold">{day.sunMoon.nightStart} → {day.sunMoon.astronomicalDawn}</div>
                     </div>
                   </div>
                 </div>

@@ -121,29 +121,10 @@ export function getGCNightWindow(
 
   const gcRise = parseTime(gcTimes.rise);
   const gcSet = parseTime(gcTimes.set);
-  const nightStart = parseTime(sunMoon.nightStart);   // astronomical dusk
-  const nightEnd = parseTime(sunMoon.nightStart);     // we need night end too
+  const nightStartTime = parseTime(sunMoon.nightStart);
 
-  // Get the next day's night start as night end approximation
-  // Actually, SunCalc "night" = astronomical dusk. We need astronomical dawn.
-  // Let's compute it: night ends at next day's astronomical dawn
-  // which is the same as: today's nauticalDusk is NOT what we want.
-  // We need to find when astronomical twilight ends in the morning.
-  // SunCalc doesn't give "nightEnd" directly, so we compute it from next day.
-  const nextDay = new Date(date);
-  nextDay.setDate(nextDay.getDate() + 1);
-  const prevDay = new Date(date);
-  prevDay.setDate(prevDay.getDate() - 1);
-  const nextSunMoon = getSunMoonTimes(nextDay, lat, lng);
-  const prevSunMoon = getSunMoonTimes(prevDay, lat, lng);
-
-  // Night period: from today's astronomical dusk (nightStart) to next day's astronomical dawn
-  // Next day's "night" time in SunCalc = astronomical dusk, but we need dawn.
-  // Actually SunCalc "night" = dusk. For dawn, we look at prev day's "night" from the next day's perspective.
-  // Simpler: night ends at the time when sun reaches -18° in the morning = next day's "night" is dusk, not dawn.
-  // Let's use a different approach: compute sun altitude at each hour and find when it crosses -18°
+  // Find astronomical dawn (sun at -18° going up) for night end
   const nightEndTime = findAstronomicalDawn(date, lat, lng);
-  const nightStartTime = nightStart;
 
   // Handle wrap-around: night may span midnight
   // GC window may also span midnight
@@ -171,14 +152,8 @@ export function getGCNightWindow(
  * This is when true night ends in the morning.
  */
 function findAstronomicalDawn(date: Date, lat: number, lng: number): number {
-  // Check each hour of the day to find when sun crosses -18° going up
-  const times = SunCalc.getTimes(date, lat, lng) as SunCalc.SunTimes;
-
-  // SunCalc gives us "night" = astronomical dusk (evening)
-  // For astronomical dawn (morning), we check the next sunrise period
-  // Simple approach: use the "night" from previous day shifted, or compute directly
-
-  // Actually, let's just compute sun altitude at each hour
+  // Find when sun crosses -18° going upward (astronomical dawn)
+  // Compute sun altitude at each hour and binary-search for -18° crossing
   for (let h = 0; h < 24; h++) {
     const checkTime = new Date(date);
     checkTime.setHours(h, 0, 0, 0);
@@ -241,6 +216,7 @@ export function getSunMoonTimes(
     blueHourEnd: formatTimeFromDate(times.dusk),
     nauticalDusk: formatTimeFromDate(times.nauticalDusk),
     nightStart: formatTimeFromDate(times.night),
+    astronomicalDawn: formatTime(findAstronomicalDawn(date, lat, lng)),
     moonrise: moonTimes?.rise ? formatTimeFromDate(moonTimes.rise) : null,
     moonset: moonTimes?.set ? formatTimeFromDate(moonTimes.set) : null,
   };
