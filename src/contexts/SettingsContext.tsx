@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useSyncExternalStore, ReactNode } from 'react';
 import { AppSettings } from '@/types';
 
 const SETTINGS_STORAGE_KEY = 'astroplan-settings';
@@ -21,6 +21,10 @@ function loadSettings(): AppSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
+// useSyncExternalStore avoids the "set-state-in-effect" warning and keeps
+// client-only state correct without a flash of defaults.
+const subscribe = () => () => {};
+
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (newSettings: AppSettings) => void;
@@ -30,19 +34,20 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    setSettings(loadSettings());
-    setLoaded(true);
-  }, []);
+  const settings = useSyncExternalStore(
+    subscribe,
+    loadSettings,
+    () => ({ ...DEFAULT_SETTINGS })
+  );
+  // On the server we can't read localStorage, so mark loaded only after mount.
+  const loaded = typeof window !== 'undefined';
 
   const updateSettings = useCallback((newSettings: AppSettings) => {
-    setSettings(newSettings);
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
     } catch { /* ignore */ }
+    // Trigger a re-read so subscribers pick up the change.
+    window.dispatchEvent(new Event('astroplan-settings-change'));
   }, []);
 
   return (

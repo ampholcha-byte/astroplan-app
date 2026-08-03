@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
 import { getMoonLevel, getGCNightWindow, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from '@/app/actions';
@@ -42,6 +42,10 @@ function loadSettings(): AppSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
+// useSyncExternalStore avoids the "set-state-in-effect" warning for client-only
+// localStorage state.
+const subscribeSettings = () => () => {};
+
 function saveSettingsToStorage(s: AppSettings) {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
@@ -61,7 +65,7 @@ function createDay(
   const dateObj = new Date(year, month, date);
 
   const moon = getMoonLevel(dateObj);
-  const gcVisible = isGalacticCenterVisible(dateObj, lat, lng);
+  const gcVisible = isGalacticCenterVisible(dateObj, lat);
   const galacticCenter = gcVisible ? getGCNightWindow(dateObj, lat, lng) : null;
 
   const cached = weatherCache[date];
@@ -168,8 +172,11 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [coords, setCoords] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
-  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const settings = useSyncExternalStore(
+    subscribeSettings,
+    loadSettings,
+    () => ({ ...DEFAULT_SETTINGS })
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
@@ -178,11 +185,6 @@ export default function CalendarPage() {
   const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
   const lpFetchedRef = useRef<string>('');
   const weatherCacheRef = useRef<Record<number, { weather: WeatherData | null; source: CloudSource }>>({});
-
-  useEffect(() => {
-    setSettings(loadSettings());
-    setSettingsLoaded(true);
-  }, []);
 
   const buildAndApply = useCallback(
     (year: number, month: number, weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }>, lp: LightPollutionData | null) => {
@@ -230,8 +232,14 @@ export default function CalendarPage() {
   );
 
   useEffect(() => {
-    regenerateCalendar(calendar.year, calendar.month);
-  }, [coords.lat, coords.lng]);
+    let active = true;
+    (async () => {
+      await regenerateCalendar(calendar.year, calendar.month);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [coords.lat, coords.lng, regenerateCalendar]);
 
   const handlePrevMonth = () => {
     const pm = calendar.month === 0 ? 11 : calendar.month - 1;
@@ -250,8 +258,8 @@ export default function CalendarPage() {
   };
 
   const handleSettingsChange = useCallback((newSettings: AppSettings) => {
-    setSettings(newSettings);
     saveSettingsToStorage(newSettings);
+    window.dispatchEvent(new Event('astroplan-settings-change'));
   }, []);
 
   const handleLocationSelect = useCallback((newCoords: Coordinates) => {

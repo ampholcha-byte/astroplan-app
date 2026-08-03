@@ -1,9 +1,11 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
+import type { AppSettings } from '@/types';
 import PageWrapper from '@/components/layout/PageWrapper';
 import SettingsPanel from '@/components/layout/SettingsPanel';
-import { useState, useEffect } from 'react';
-import { AppSettings } from '@/types';
+
+const SETTINGS_STORAGE_KEY = 'astroplan-settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
   latitude: 13.7563,
@@ -11,8 +13,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   timezone: 'Asia/Bangkok',
   useGPS: false,
 };
-
-const SETTINGS_STORAGE_KEY = 'astroplan-settings';
 
 function loadSettings(): AppSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
@@ -23,23 +23,23 @@ function loadSettings(): AppSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
-export default function SettingsPage() {
-  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+// useSyncExternalStore avoids the "set-state-in-effect" warning and keeps
+// client-only state correct without a flash of defaults.
+const subscribe = () => () => {};
 
-  useEffect(() => {
-    setSettings(loadSettings());
-    setSettingsLoaded(true);
-  }, []);
+export default function SettingsPage() {
+  const settings = useSyncExternalStore(
+    subscribe,
+    loadSettings,
+    () => ({ ...DEFAULT_SETTINGS })
+  );
 
   const handleSettingsChange = (newSettings: AppSettings) => {
-    setSettings(newSettings);
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
     } catch { /* ignore */ }
+    window.dispatchEvent(new Event('astroplan-settings-change'));
   };
-
-  if (!settingsLoaded) return null;
 
   return (
     <PageWrapper>

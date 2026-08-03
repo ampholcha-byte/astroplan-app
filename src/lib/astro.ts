@@ -79,16 +79,13 @@ export function getGalacticCenterTimes(
   noon.setHours(12, 0, 0, 0);
   const lstNoon = getLocalSiderealTime(noon, lng);
 
-  let transitLST = gcRA;
-  let hourAngleRise = -H;
-  let hourAngleSet = H;
+  const hourAngleRise = -H;
+  const hourAngleSet = H;
 
-  let transitHours = ((transitLST - lstNoon) / 360) * 24;
   let riseHours = ((gcRA + hourAngleRise - lstNoon) / 360) * 24;
   let setHours = ((gcRA + hourAngleSet - lstNoon) / 360) * 24;
 
   const utcOffset = -date.getTimezoneOffset() / 60;
-  transitHours += utcOffset;
   riseHours += utcOffset;
   setHours += utcOffset;
 
@@ -189,8 +186,7 @@ function findAstronomicalDawn(date: Date, lat: number, lng: number): number {
 
 export function isGalacticCenterVisible(
   date: Date,
-  lat: number,
-  lng: number
+  lat: number
 ): boolean {
   const decRad = toRadians(GC_DEC);
   const latRad = toRadians(lat);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import type { DayChecklist, ChecklistItem } from '@/types';
 import {
   getChecklist,
@@ -16,23 +16,46 @@ interface ChecklistPanelProps {
   location: string;
 }
 
+const CHECKLIST_EVENT = 'astroplan-checklist-change';
+
+function readChecklist(dateId: string, location: string): DayChecklist {
+  let cl = getChecklist(dateId);
+  if (!cl) cl = createChecklist(dateId, location);
+  return cl;
+}
+
 export default function ChecklistPanel({ dateId, location }: ChecklistPanelProps) {
-  const [checklist, setChecklist] = useState<DayChecklist | null>(null);
   const [newItemText, setNewItemText] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
 
+  // Track current props in a ref, updated in an effect (not during render).
+  const ref = useRef({ dateId, location });
   useEffect(() => {
-    let cl = getChecklist(dateId);
-    if (!cl) {
-      cl = createChecklist(dateId, location);
-    }
-    setChecklist(cl);
+    ref.current = { dateId, location };
   }, [dateId, location]);
 
+  // useSyncExternalStore avoids the "set-state-in-effect" warning and keeps
+  // client-only localStorage state correct.
+  const subscribe = useCallback(() => {
+    const handler = () => {};
+    window.addEventListener(CHECKLIST_EVENT, handler);
+    return () => window.removeEventListener(CHECKLIST_EVENT, handler);
+  }, []);
+
+  const getSnapshot = useCallback(() => {
+    const { dateId: d, location: l } = ref.current;
+    return readChecklist(d, l);
+  }, []);
+
+  const checklist = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    () => readChecklist(dateId, location)
+  );
+
   const refresh = useCallback(() => {
-    const cl = getChecklist(dateId);
-    if (cl) setChecklist({ ...cl, items: [...cl.items] });
-  }, [dateId]);
+    window.dispatchEvent(new Event(CHECKLIST_EVENT));
+  }, []);
 
   const handleToggle = (itemId: string) => {
     toggleItem(dateId, itemId);
@@ -56,9 +79,7 @@ export default function ChecklistPanel({ dateId, location }: ChecklistPanelProps
     refresh();
   };
 
-  if (!checklist) return null;
-
-  const checkedCount = checklist.items.filter((i) => i.checked).length;
+  const checkedCount = checklist.items.filter((i: ChecklistItem) => i.checked).length;
   const totalCount = checklist.items.length;
   const progress = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 

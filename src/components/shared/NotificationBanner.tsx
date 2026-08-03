@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useSyncExternalStore } from 'react';
 import type { DayData } from '@/types';
 import {
   getNotificationSettings,
@@ -16,46 +16,49 @@ interface NotificationBannerProps {
   days: DayData[];
 }
 
+// useSyncExternalStore avoids the "set-state-in-effect" warning for client-only
+// localStorage state.
+const subscribe = () => () => {};
+
 export default function NotificationBanner({ days }: NotificationBannerProps) {
-  const [settings, setSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS);
+  const settings = useSyncExternalStore(
+    subscribe,
+    getNotificationSettings,
+    () => DEFAULT_NOTIFICATION_SETTINGS
+  );
   const [showSetup, setShowSetup] = useState(false);
-  const [notifMessage, setNotifMessage] = useState<{ title: string; body: string } | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    setSettings(getNotificationSettings());
-  }, []);
-
-  // Check for good days on mount and when days change.
-  // Only trigger if the target date is within the current calendar month
-  // to avoid re-triggering when switching months.
-  useEffect(() => {
-    if (days.length === 0) return;
+  // Derive the notification message instead of setting state inside an effect.
+  const notifMessage = useMemo(() => {
+    if (dismissed) return null;
+    if (days.length === 0) return null;
 
     const msg = checkGoodDays(days, settings);
-    if (msg) {
-      // Verify the target date actually exists in the current calendar
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const targetDate = new Date(today);
-      targetDate.setDate(targetDate.getDate() + settings.daysAhead);
-      const targetStr = targetDate.toISOString().slice(0, 10);
+    if (!msg) return null;
 
-      const targetInCurrentMonth = days.some((d) => d.id === targetStr);
-      if (!targetInCurrentMonth) return;
+    // Verify the target date actually exists in the current calendar month
+    // to avoid re-triggering when switching months.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + settings.daysAhead);
+    const targetStr = targetDate.toISOString().slice(0, 10);
 
-      setNotifMessage(msg);
-      if ('Notification' in window && Notification.permission === 'granted') {
-        showNotification(msg.title, msg.body);
-        setLastNotifiedDate(new Date().toISOString().slice(0, 10));
-      }
+    const targetInCurrentMonth = days.some((d) => d.id === targetStr);
+    if (!targetInCurrentMonth) return null;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      showNotification(msg.title, msg.body);
+      setLastNotifiedDate(new Date().toISOString().slice(0, 10));
     }
-  }, [days, settings]);
+    return msg;
+  }, [days, settings, dismissed]);
 
   const handleEnable = async () => {
     const granted = await requestNotificationPermission();
     if (granted) {
       const newSettings = { ...settings, enabled: true };
-      setSettings(newSettings);
       saveNotificationSettings(newSettings);
       setShowSetup(false);
     }
@@ -63,14 +66,12 @@ export default function NotificationBanner({ days }: NotificationBannerProps) {
 
   const handleDisable = () => {
     const newSettings = { ...settings, enabled: false };
-    setSettings(newSettings);
     saveNotificationSettings(newSettings);
     setShowSetup(false);
   };
 
   const handleMinScoreChange = (score: number) => {
     const newSettings = { ...settings, minScore: score };
-    setSettings(newSettings);
     saveNotificationSettings(newSettings);
   };
 
@@ -86,7 +87,7 @@ export default function NotificationBanner({ days }: NotificationBannerProps) {
               <p className="text-[10px] text-emerald-400/80 mt-0.5">{notifMessage.body}</p>
             </div>
             <button
-              onClick={() => setNotifMessage(null)}
+              onClick={() => setDismissed(true)}
               className="text-slate-500 hover:text-slate-300 text-xs"
             >
               ✕
