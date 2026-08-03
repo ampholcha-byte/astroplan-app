@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
+import { Coordinates, DayData, CalendarMonth, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
 import { getMoonLevel, getGCNightWindow, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from '@/app/actions';
 import PageWrapper from '@/components/layout/PageWrapper';
@@ -174,9 +174,25 @@ export default function CalendarPage() {
   const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
   const fetchedRef = useRef<string>('');
 
+  // Mirror the latest calendar in a ref so the mount/coords effect can read it
+  // without listing calendar.year/month in its dependency array (which would
+  // cause a double-run when navigating months — month nav calls
+  // regenerateCalendar directly via handlePrevMonth/handleNextMonth).
+  const calendarRef = useRef(calendar);
+  useEffect(() => {
+    calendarRef.current = calendar;
+  }, [calendar]);
   const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
   const lpFetchedRef = useRef<string>('');
   const weatherCacheRef = useRef<Record<number, { weather: WeatherData | null; source: CloudSource }>>({});
+
+  // Mirror lightPollution in a ref so regenerateCalendar can read the latest
+  // value without listing it in its dependency array (it's only set once per
+  // location, after which regenerateCalendar is invoked again anyway).
+  const lightPollutionRef = useRef(lightPollution);
+  useEffect(() => {
+    lightPollutionRef.current = lightPollution;
+  }, [lightPollution]);
 
   useEffect(() => {
     // Client-only hydration of localStorage state (correct pattern, no loop).
@@ -220,23 +236,21 @@ export default function CalendarPage() {
           console.warn('Light pollution fetch failed:', err);
         }
       } else {
-        lpData = lightPollution;
+        lpData = lightPollutionRef.current;
       }
 
       // Apply calendar AFTER both fetches complete
       buildAndApply(year, month, weatherCache, lpData);
     },
-    [coords, lightPollution, buildAndApply]
+    [coords, buildAndApply]
   );
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      await regenerateCalendar(calendar.year, calendar.month);
-    })();
-    return () => {
-      active = false;
-    };
+    // Initial load + reload when location changes. Month navigation is handled
+    // explicitly by handlePrevMonth/handleNextMonth (which call regenerateCalendar
+    // directly), so calendar.year/month are read via ref and intentionally
+    // excluded from deps. The async call sets state (correct load pattern).
+    void regenerateCalendar(calendarRef.current.year, calendarRef.current.month);
   }, [coords.lat, coords.lng, regenerateCalendar]);
 
   const handlePrevMonth = () => {
