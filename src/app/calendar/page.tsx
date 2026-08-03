@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, MoonLevel, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
 import { getMoonLevel, getGCNightWindow, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from '@/app/actions';
@@ -41,10 +41,6 @@ function loadSettings(): AppSettings {
   } catch { /* ignore */ }
   return { ...DEFAULT_SETTINGS };
 }
-
-// useSyncExternalStore avoids the "set-state-in-effect" warning for client-only
-// localStorage state.
-const subscribeSettings = () => () => {};
 
 function saveSettingsToStorage(s: AppSettings) {
   try {
@@ -172,11 +168,7 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [coords, setCoords] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
-  const settings = useSyncExternalStore(
-    subscribeSettings,
-    loadSettings,
-    () => ({ ...DEFAULT_SETTINGS })
-  );
+  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
@@ -185,6 +177,12 @@ export default function CalendarPage() {
   const [lightPollution, setLightPollution] = useState<LightPollutionData | null>(null);
   const lpFetchedRef = useRef<string>('');
   const weatherCacheRef = useRef<Record<number, { weather: WeatherData | null; source: CloudSource }>>({});
+
+  useEffect(() => {
+    // Client-only hydration of localStorage state (correct pattern, no loop).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSettings(loadSettings());
+  }, []);
 
   const buildAndApply = useCallback(
     (year: number, month: number, weatherCache: Record<number, { weather: WeatherData | null; source: CloudSource }>, lp: LightPollutionData | null) => {
@@ -258,8 +256,8 @@ export default function CalendarPage() {
   };
 
   const handleSettingsChange = useCallback((newSettings: AppSettings) => {
+    setSettings(newSettings);
     saveSettingsToStorage(newSettings);
-    window.dispatchEvent(new Event('astroplan-settings-change'));
   }, []);
 
   const handleLocationSelect = useCallback((newCoords: Coordinates) => {

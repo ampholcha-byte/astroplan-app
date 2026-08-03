@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { DayChecklist, ChecklistItem } from '@/types';
 import {
   getChecklist,
@@ -16,46 +16,25 @@ interface ChecklistPanelProps {
   location: string;
 }
 
-const CHECKLIST_EVENT = 'astroplan-checklist-change';
-
-function readChecklist(dateId: string, location: string): DayChecklist {
-  let cl = getChecklist(dateId);
-  if (!cl) cl = createChecklist(dateId, location);
-  return cl;
-}
-
 export default function ChecklistPanel({ dateId, location }: ChecklistPanelProps) {
+  const [checklist, setChecklist] = useState<DayChecklist | null>(null);
   const [newItemText, setNewItemText] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
 
-  // Track current props in a ref, updated in an effect (not during render).
-  const ref = useRef({ dateId, location });
   useEffect(() => {
-    ref.current = { dateId, location };
+    let cl = getChecklist(dateId);
+    if (!cl) {
+      cl = createChecklist(dateId, location);
+    }
+    // Client-only hydration of localStorage state (correct pattern, no loop).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChecklist(cl);
   }, [dateId, location]);
 
-  // useSyncExternalStore avoids the "set-state-in-effect" warning and keeps
-  // client-only localStorage state correct.
-  const subscribe = useCallback(() => {
-    const handler = () => {};
-    window.addEventListener(CHECKLIST_EVENT, handler);
-    return () => window.removeEventListener(CHECKLIST_EVENT, handler);
-  }, []);
-
-  const getSnapshot = useCallback(() => {
-    const { dateId: d, location: l } = ref.current;
-    return readChecklist(d, l);
-  }, []);
-
-  const checklist = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    () => readChecklist(dateId, location)
-  );
-
   const refresh = useCallback(() => {
-    window.dispatchEvent(new Event(CHECKLIST_EVENT));
-  }, []);
+    const cl = getChecklist(dateId);
+    if (cl) setChecklist({ ...cl, items: [...cl.items] });
+  }, [dateId]);
 
   const handleToggle = (itemId: string) => {
     toggleItem(dateId, itemId);
@@ -78,6 +57,8 @@ export default function ChecklistPanel({ dateId, location }: ChecklistPanelProps
     updateChecklist(dateId, { notes });
     refresh();
   };
+
+  if (!checklist) return null;
 
   const checkedCount = checklist.items.filter((i: ChecklistItem) => i.checked).length;
   const totalCount = checklist.items.length;

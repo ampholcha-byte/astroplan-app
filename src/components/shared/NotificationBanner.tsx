@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useSyncExternalStore } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { DayData } from '@/types';
 import {
   getNotificationSettings,
@@ -16,18 +16,16 @@ interface NotificationBannerProps {
   days: DayData[];
 }
 
-// useSyncExternalStore avoids the "set-state-in-effect" warning for client-only
-// localStorage state.
-const subscribe = () => () => {};
-
 export default function NotificationBanner({ days }: NotificationBannerProps) {
-  const settings = useSyncExternalStore(
-    subscribe,
-    getNotificationSettings,
-    () => DEFAULT_NOTIFICATION_SETTINGS
-  );
+  const [settings, setSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS);
   const [showSetup, setShowSetup] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    // Client-only hydration of localStorage state (correct pattern, no loop).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSettings(getNotificationSettings());
+  }, []);
 
   // Derive the notification message instead of setting state inside an effect.
   const notifMessage = useMemo(() => {
@@ -59,6 +57,7 @@ export default function NotificationBanner({ days }: NotificationBannerProps) {
     const granted = await requestNotificationPermission();
     if (granted) {
       const newSettings = { ...settings, enabled: true };
+      setSettings(newSettings);
       saveNotificationSettings(newSettings);
       setShowSetup(false);
     }
@@ -66,12 +65,14 @@ export default function NotificationBanner({ days }: NotificationBannerProps) {
 
   const handleDisable = () => {
     const newSettings = { ...settings, enabled: false };
+    setSettings(newSettings);
     saveNotificationSettings(newSettings);
     setShowSetup(false);
   };
 
   const handleMinScoreChange = (score: number) => {
     const newSettings = { ...settings, minScore: score };
+    setSettings(newSettings);
     saveNotificationSettings(newSettings);
   };
 

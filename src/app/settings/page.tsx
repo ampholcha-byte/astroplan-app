@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import type { AppSettings } from '@/types';
 import PageWrapper from '@/components/layout/PageWrapper';
 import SettingsPanel from '@/components/layout/SettingsPanel';
@@ -23,22 +23,20 @@ function loadSettings(): AppSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
-// useSyncExternalStore avoids the "set-state-in-effect" warning and keeps
-// client-only state correct without a flash of defaults.
-const subscribe = () => () => {};
-
 export default function SettingsPage() {
-  const settings = useSyncExternalStore(
-    subscribe,
-    loadSettings,
-    () => ({ ...DEFAULT_SETTINGS })
-  );
+  const [settings, setSettings] = useState<AppSettings>(() => ({ ...DEFAULT_SETTINGS }));
+
+  useEffect(() => {
+    // Client-only hydration of localStorage state (correct pattern, no loop).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSettings(loadSettings());
+  }, []);
 
   const handleSettingsChange = (newSettings: AppSettings) => {
+    setSettings(newSettings);
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
     } catch { /* ignore */ }
-    window.dispatchEvent(new Event('astroplan-settings-change'));
   };
 
   return (

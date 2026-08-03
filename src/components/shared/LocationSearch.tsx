@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useSyncExternalStore } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Coordinates } from '@/types';
 import { geocodePlaceName } from '@/lib/geocoding';
 
@@ -10,7 +10,6 @@ interface LocationSearchProps {
 
 const STORAGE_KEY = 'astroplan-recent-locations';
 const MAX_RECENT = 5;
-const RECENT_EVENT = 'astroplan-recent-locations-change';
 
 function getRecentLocations(): string[] {
   try {
@@ -26,28 +25,25 @@ function saveRecentLocation(query: string) {
     const recent = getRecentLocations();
     const updated = [query, ...recent.filter((q) => q !== query)].slice(0, MAX_RECENT);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event(RECENT_EVENT));
   } catch {
     // ignore storage errors
   }
 }
-
-// useSyncExternalStore avoids the "set-state-in-effect" warning for client-only
-// localStorage state.
-const subscribeRecent = () => {
-  const handler = () => {};
-  window.addEventListener(RECENT_EVENT, handler);
-  return () => window.removeEventListener(RECENT_EVENT, handler);
-};
 
 export default function LocationSearch({ onLocationSelect }: LocationSearchProps) {
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const recent = useSyncExternalStore(subscribeRecent, getRecentLocations, () => []);
+  const [recent, setRecent] = useState<string[]>([]);
   const [showRecent, setShowRecent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Client-only hydration of localStorage state (correct pattern, no loop).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecent(getRecentLocations());
+  }, []);
 
   const handleSearch = async (searchQuery?: string) => {
     const q = (searchQuery || query).trim();
@@ -62,6 +58,7 @@ export default function LocationSearch({ onLocationSelect }: LocationSearchProps
       const coords = await geocodePlaceName(q);
       onLocationSelect(coords);
       saveRecentLocation(q);
+      setRecent(getRecentLocations());
       setQuery('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
