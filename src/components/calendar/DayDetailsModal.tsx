@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { DayData } from '@/types';
 import ChecklistPanel from '@/components/planning/ChecklistPanel';
 
@@ -172,6 +173,13 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                   <div className="text-[9px] text-gray-600">dark night</div>
                 </div>
               )}
+
+              {/* GC explainer */}
+              {day.galacticCenter && (
+                <div className="col-span-2 text-[9px] text-slate-600 -mt-2">
+                  Galactic Center = ใจกลางทางช้างเผือก (ส่วนสว่างที่สุด)
+                </div>
+              )}
             </div>
 
             {/* Milky Way core visibility during darkness */}
@@ -266,6 +274,7 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                     <div>
                       <div className="text-[9px] text-indigo-400/70 uppercase">Astronomical Night (best for MW)</div>
                       <div className="text-sm text-indigo-300 font-semibold">{day.sunMoon.nightStart} → {day.sunMoon.astronomicalDawn}</div>
+                      <div className="text-[9px] text-slate-600">ดวงอาทิตย์ต่ำกว่า -18° — ท้องฟ้ามืดสนิท</div>
                     </div>
                   </div>
                 </div>
@@ -309,6 +318,9 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                     <span>Dark (1)</span>
                     <span>Bright (9)</span>
                   </div>
+                  <p className="text-[9px] text-slate-600 mt-2">
+                    1 = ท้องฟ้ามืดสุด (เห็น MW ด้วยตาเปล่า) · 9 = ในเมือง มลพิษแสงสูง
+                  </p>
                 </div>
               </div>
             )}
@@ -325,6 +337,17 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
 
             {/* Checklist */}
             <ChecklistPanel dateId={day.id} location={locationName ?? ''} />
+
+            {/* Beginner guide link */}
+            <div className="mt-4 text-center">
+              <Link
+                href="/plan"
+                onClick={onClose}
+                className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+              >
+                📖 New to Milky Way photography? Read the Guide
+              </Link>
+            </div>
           </>
         )}
       </div>
