@@ -199,8 +199,14 @@ export default function CalendarPage() {
 
   useEffect(() => {
     // Client-only hydration of localStorage state (correct pattern, no loop).
+    // Apply the saved location unless the user already picked one this session.
+    const s = loadSettings();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSettings(loadSettings());
+    setSettings(s);
+    if (!location) {
+      setCoords({ lat: s.latitude, lng: s.longitude });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const buildAndApply = useCallback(
