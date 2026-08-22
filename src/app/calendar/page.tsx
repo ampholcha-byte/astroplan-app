@@ -12,6 +12,7 @@ import CalendarGrid from '@/components/calendar/CalendarGrid';
 import DayDetailsModal from '@/components/calendar/DayDetailsModal';
 import BestDaysSummary from '@/components/calendar/BestDaysSummary';
 import MilkyWaySeasonBanner from '@/components/calendar/MilkyWaySeasonBanner';
+import MonthTimeline from '@/components/calendar/MonthTimeline';
 import SettingsPanel from '@/components/layout/SettingsPanel';
 import NotificationBanner from '@/components/shared/NotificationBanner';
 import TonightForecast from '@/components/calendar/TonightForecast';
@@ -175,6 +176,7 @@ export default function CalendarPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
+  const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('grid');
   const fetchedRef = useRef<string>('');
 
   // Mirror the latest calendar in a ref so the mount/coords effect can read it
@@ -407,16 +409,46 @@ export default function CalendarPage() {
         </button>
       )}
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 mb-2 text-[10px] text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> GC Rise</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400" /> GC Set</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Moon Bright</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600" /> Dark Sky</span>
+      {/* View toggle: grid / timeline */}
+      <div className="flex gap-1.5 mb-3">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`px-3 py-1 text-[11px] rounded-full border transition-colors ${
+            viewMode === 'grid'
+              ? 'bg-indigo-600 border-indigo-500 text-white'
+              : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+          }`}
+        >
+          🗓 Grid
+        </button>
+        <button
+          onClick={() => setViewMode('timeline')}
+          className={`px-3 py-1 text-[11px] rounded-full border transition-colors ${
+            viewMode === 'timeline'
+              ? 'bg-indigo-600 border-indigo-500 text-white'
+              : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+          }`}
+        >
+          📊 Timeline
+        </button>
       </div>
 
+      {/* Legend (grid view) */}
+      {viewMode === 'grid' && (
+        <div className="flex items-center gap-3 mb-2 text-[10px] text-slate-500">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> GC Rise</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400" /> GC Set</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Moon Bright</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600" /> Dark Sky</span>
+        </div>
+      )}
+
       {/* Calendar */}
-      <CalendarGrid days={calendar.days} onDayClick={setSelectedDay} />
+      {viewMode === 'grid' ? (
+        <CalendarGrid days={calendar.days} onDayClick={setSelectedDay} />
+      ) : (
+        <MonthTimeline days={calendar.days} onDayClick={setSelectedDay} />
+      )}
 
       {/* Best days summary */}
       <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} />
