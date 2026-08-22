@@ -72,11 +72,14 @@ async function fetchOpenMeteoArchive(
   const data = await res.json();
   if (!data.daily?.time) return {};
 
-  // Build date -> daily cloud cover map
+  // Build date -> daily cloud cover map (skip entries with no cloud data —
+  // null from the API means "unknown", not "0% clear")
   const cloudByDate: Record<string, number> = {};
   const codeByDate: Record<string, number> = {};
   for (let i = 0; i < data.daily.time.length; i++) {
-    cloudByDate[data.daily.time[i]] = data.daily.cloudcover_mean[i] ?? 0;
+    const cloud = data.daily.cloudcover_mean[i];
+    if (cloud == null) continue;
+    cloudByDate[data.daily.time[i]] = cloud;
     codeByDate[data.daily.time[i]] = data.daily.weather_code[i] ?? 0;
   }
 
@@ -125,10 +128,12 @@ async function fetchOpenMeteoForecast(
   const data = await res.json();
   if (!data.daily?.time || !data.hourly?.time) return {};
 
-  // Build date -> daily cloud cover map
+  // Build date -> daily cloud cover map (null from API = no data, skip the day)
   const cloudByDate: Record<string, number> = {};
   for (let i = 0; i < data.daily.time.length; i++) {
-    cloudByDate[data.daily.time[i]] = data.daily.cloudcover_mean[i] ?? 0;
+    const cloud = data.daily.cloudcover_mean[i];
+    if (cloud == null) continue;
+    cloudByDate[data.daily.time[i]] = cloud;
   }
 
   // Build date -> hourly entries map (pick midday ~index 12)

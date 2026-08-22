@@ -39,8 +39,8 @@ export default function MilkyWaySeasonBanner({ season }: MilkyWaySeasonBannerPro
     title = '🌌 Milky Way Season — Shoulder';
     detail = `Core visible on ${season.visibleDays} night${season.visibleDays === 1 ? '' : 's'}, but bright moon limits the best windows`;
   } else {
-    title = '🌌 Milky Way Season — Off';
-    detail = 'The galactic core does not rise during darkness this month';
+    title = '🌌 Milky Way Season — Off · GC ขึ้นเฉพาะกลางวัน';
+    detail = 'คืนเดือนมืด (moon ≤ 3) ยังถ่ายดาว / Orion / Andromeda ได้ดี — ดู ★ good nights ด้านล่าง';
   }
 
   return (

@@ -52,11 +52,34 @@ function getQualityLabel(day: DayData): { label: string; color: string } | null 
   return null;
 }
 
+/** Compass direction of the GC at the hour closest to a "HH:MM" night time. */
+function gcDirectionAt(day: DayData, time: string): string {
+  if (!day.gcPositions) return '';
+  const toNightHours = (t: string) => {
+    const [h] = t.split(':').map(Number);
+    return h < 12 ? h + 24 : h;
+  };
+  const target = toNightHours(time);
+  let best = day.gcPositions[0];
+  let bestDiff = Infinity;
+  for (const p of day.gcPositions) {
+    const diff = Math.abs(toNightHours(p.time) - target);
+    if (diff < bestDiff) {
+      best = p;
+      bestDiff = diff;
+    }
+  }
+  return best.altitude >= 0 ? best.direction : '';
+}
+
 export default function DayCell({ day, onClick, isToday }: DayCellProps) {
   const isHidden = day.visibility === 'hidden';
+  const isOffSeason = !isHidden && !day.galacticCenter;
   const bgColor = MOON_BG[day.moonLevel] || MOON_BG[1];
   const textColor = MOON_TEXT[day.moonLevel] || MOON_TEXT[1];
   const quality = getQualityLabel(day);
+  const riseDir = day.galacticCenter ? gcDirectionAt(day, day.galacticCenter.rise) : '';
+  const setDir = day.galacticCenter ? gcDirectionAt(day, day.galacticCenter.set) : '';
 
   return (
     <button
@@ -80,18 +103,28 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
 
       {/* Center info */}
       <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-        {/* Galactic Center rise/set — clamped to Astronomical Night */}
+        {/* Galactic Center rise/set — clamped to Astronomical Night, with compass direction */}
         {day.galacticCenter && (
           <>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC visible (dark night)">
+            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC visible (dark night) — face this direction">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-              <span>{day.galacticCenter.rise}</span>
+              <span>{riseDir} {day.galacticCenter.rise}</span>
             </div>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC sets (dark night ends)">
+            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC window ends (sets or night ends)">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 shadow-sm shadow-rose-400/50" />
-              <span>{day.galacticCenter.set}</span>
+              <span>{setDir} {day.galacticCenter.set}</span>
             </div>
           </>
+        )}
+
+        {/* Off-season: GC rises only in daylight — faint ✕ so the cell explains itself */}
+        {isOffSeason && (
+          <span
+            className="text-[10px] leading-none text-slate-500/60 select-none"
+            title="GC ขึ้นเฉพาะกลางวันช่วงนี้ — คืนเดือนมืดยังถ่ายดาวได้"
+          >
+            ✕
+          </span>
         )}
 
         {/* Cloud cover + source indicator */}

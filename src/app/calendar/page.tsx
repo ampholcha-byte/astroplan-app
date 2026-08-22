@@ -358,6 +358,9 @@ export default function CalendarPage() {
           <span className="text-[10px] text-yellow-400">⚠️ No forecast data (date out of 7-day range)</span>
         )}
       </div>
+      <p className="text-[9px] text-slate-600 mb-2">
+        พยากรณ์เมฆครอบคลุม ~7 วันข้างหน้า — วันที่เกินกว่านั้น คะแนนคำนวณจากดวงจันทร์+GC อย่างเดียว (เช็กอากาศอีกครั้งเมื่อใกล้วันจริง)
+      </p>
 
       {/* Score Filter */}
       <ScoreFilter mode={scoreMode} onChange={setScoreMode} />
