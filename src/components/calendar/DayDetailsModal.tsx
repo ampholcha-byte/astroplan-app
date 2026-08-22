@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { DayData } from '@/types';
 import ChecklistPanel from '@/components/planning/ChecklistPanel';
+import SkyTimeline from '@/components/calendar/SkyTimeline';
 
 interface DayDetailsModalProps {
   day: DayData;
@@ -181,6 +182,9 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
                 </div>
               )}
             </div>
+
+            {/* Sky timeline visual (bands + hourly GC positions) */}
+            <SkyTimeline day={day} />
 
             {/* Milky Way core visibility during darkness */}
             <div className="mb-5">

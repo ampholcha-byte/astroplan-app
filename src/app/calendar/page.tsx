@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
-import { getMoonLevel, getGCNightWindow, getMilkyWaySeason, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
+import { getMoonLevel, getGCNightWindow, getGCPositionsForNight, getMilkyWaySeason, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from '@/app/actions';
 import PageWrapper from '@/components/layout/PageWrapper';
 import LocationSearch from '@/components/shared/LocationSearch';
@@ -64,6 +64,7 @@ function createDay(
   const moon = getMoonLevel(dateObj);
   const gcVisible = isGalacticCenterVisible(dateObj, lat);
   const galacticCenter = gcVisible ? getGCNightWindow(dateObj, lat, lng) : null;
+  const gcPositions = gcVisible ? getGCPositionsForNight(dateObj, lat, lng) : null;
 
   const cached = weatherCache[date];
   const weather = cached?.weather ?? null;
@@ -82,6 +83,7 @@ function createDay(
     cloudSource,
     weather,
     galacticCenter,
+    gcPositions,
     sunMoon,
     lightPollution: lightPollutionCache,
     visibility: gcVisible ? 'visible' : 'hidden',

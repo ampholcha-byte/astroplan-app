@@ -1,5 +1,5 @@
 import SunCalc from 'suncalc';
-import { GalacticCenterTime, MilkyWaySeason, MilkyWaySeasonLevel, MoonLevel, SunMoonTimes } from '@/types';
+import { GalacticCenterTime, GCPosition, MilkyWaySeason, MilkyWaySeasonLevel, MoonLevel, SunMoonTimes } from '@/types';
 
 const GC_RA = 266.4051;   // Galactic Center RA in degrees
 const GC_DEC = -28.936175; // Galactic Center Dec in degrees
@@ -142,6 +142,70 @@ export function getGCNightWindow(
     rise: formatTime(windowStart),
     set: formatTime(windowEnd),
   };
+}
+
+/**
+ * Instantaneous altitude/azimuth of the Galactic Center.
+ * Altitude in degrees above horizon (negative = below), azimuth in degrees
+ * from North going East (N=0, E=90, S=180, W=270).
+ */
+export function getGCPosition(
+  date: Date,
+  lat: number,
+  lng: number
+): { altitude: number; azimuth: number } {
+  const lst = getLocalSiderealTime(date, lng);
+  let hourAngle = lst - GC_RA;
+  hourAngle = ((hourAngle + 180) % 360 + 360) % 360 - 180; // normalize to [-180, 180]
+
+  const decRad = toRadians(GC_DEC);
+  const latRad = toRadians(lat);
+  const HRad = toRadians(hourAngle);
+
+  const sinAlt =
+    Math.sin(decRad) * Math.sin(latRad) +
+    Math.cos(decRad) * Math.cos(latRad) * Math.cos(HRad);
+  const altRad = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+
+  const cosAz =
+    (Math.sin(decRad) - Math.sin(altRad) * Math.sin(latRad)) /
+    (Math.cos(altRad) * Math.cos(latRad));
+  let az = toDegrees(Math.acos(Math.max(-1, Math.min(1, cosAz))));
+  if (Math.sin(HRad) > 0) az = 360 - az; // object west of meridian
+
+  return { altitude: toDegrees(altRad), azimuth: az };
+}
+
+/** 8-point compass label for an azimuth in degrees. */
+export function azimuthToDirection(azimuth: number): string {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const idx = Math.round((((azimuth % 360) + 360) % 360) / 45) % 8;
+  return dirs[idx];
+}
+
+/**
+ * Hourly GC positions across one night: 18:00 through 06:00 next morning.
+ * `date` is the evening's local date.
+ */
+export function getGCPositionsForNight(
+  date: Date,
+  lat: number,
+  lng: number
+): GCPosition[] {
+  const positions: GCPosition[] = [];
+  for (let h = 18; h <= 30; h++) {
+    const t = new Date(date);
+    t.setDate(t.getDate() + Math.floor(h / 24));
+    t.setHours(h % 24, 0, 0, 0);
+    const { altitude, azimuth } = getGCPosition(t, lat, lng);
+    positions.push({
+      time: formatTimeFromDate(t),
+      altitude: Math.round(altitude),
+      azimuth: Math.round(azimuth),
+      direction: azimuthToDirection(azimuth),
+    });
+  }
+  return positions;
 }
 
 /**

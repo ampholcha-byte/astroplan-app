@@ -1,4 +1,4 @@
-import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel, getMilkyWaySeason } from '@/lib/astro';
+import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel, getMilkyWaySeason, getGCPosition, getGCPositionsForNight, azimuthToDirection } from '@/lib/astro';
 
 describe('astro functions', () => {
   // Test location: Chiang Mai, Thailand (18.79, 98.98)
@@ -81,6 +81,48 @@ describe('astro functions', () => {
 
     it('does not throw at extreme latitude', () => {
       expect(() => getMilkyWaySeason(2024, 11, 65, 20)).not.toThrow(); // Northern winter
+    });
+  });
+
+  describe('getGCPosition / getGCPositionsForNight', () => {
+    it('returns azimuth in the southerly sector when GC is up from Chiang Mai', () => {
+      // June evening ~22:00 local — GC should be up, towards the south
+      const date = new Date(2024, 5, 15, 22, 0, 0);
+      const pos = getGCPosition(date, CHIANG_MAI.lat, CHIANG_MAI.lng);
+      expect(pos.altitude).toBeGreaterThan(0);
+      expect(pos.azimuth).toBeGreaterThan(120);
+      expect(pos.azimuth).toBeLessThan(240);
+    });
+
+    it('returns 13 hourly entries covering 18:00 → 06:00', () => {
+      const night = getGCPositionsForNight(new Date(2024, 5, 15), CHIANG_MAI.lat, CHIANG_MAI.lng);
+      expect(night).toHaveLength(13);
+      expect(night[0].time).toBe('18:00');
+      expect(night[12].time).toBe('06:00');
+      for (const p of night) {
+        expect(p.altitude).toBeGreaterThanOrEqual(-90);
+        expect(p.altitude).toBeLessThanOrEqual(90);
+        expect(p.azimuth).toBeGreaterThanOrEqual(0);
+        expect(p.azimuth).toBeLessThanOrEqual(360);
+        expect(p.direction).toMatch(/^[NSEW]{1,2}$/);
+      }
+    });
+
+    it('mid-June night in Chiang Mai has GC above horizon in the middle hours', () => {
+      const night = getGCPositionsForNight(new Date(2024, 5, 15), CHIANG_MAI.lat, CHIANG_MAI.lng);
+      const at22 = night.find((p) => p.time === '22:00');
+      expect(at22).toBeDefined();
+      expect(at22!.altitude).toBeGreaterThan(0);
+    });
+  });
+
+  describe('azimuthToDirection', () => {
+    it('maps cardinal azimuths', () => {
+      expect(azimuthToDirection(0)).toBe('N');
+      expect(azimuthToDirection(90)).toBe('E');
+      expect(azimuthToDirection(180)).toBe('S');
+      expect(azimuthToDirection(270)).toBe('W');
+      expect(azimuthToDirection(225)).toBe('SW');
     });
   });
 

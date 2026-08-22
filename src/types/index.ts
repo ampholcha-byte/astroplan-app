@@ -21,6 +21,13 @@ export interface GalacticCenterTime {
   set: string;
 }
 
+export interface GCPosition {
+  time: string;
+  altitude: number;
+  azimuth: number;
+  direction: string;
+}
+
 export interface SunMoonTimes {
   sunrise: string;
   sunset: string;
@@ -44,6 +51,7 @@ export interface DayData {
   cloudSource: CloudSource;
   weather: WeatherData | null;
   galacticCenter: GalacticCenterTime | null;
+  gcPositions: GCPosition[] | null;
   sunMoon: SunMoonTimes | null;
   lightPollution: LightPollutionData | null;
   visibility: VisibilityState;
