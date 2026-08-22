@@ -174,6 +174,29 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
               )}
             </div>
 
+            {/* Milky Way core visibility during darkness */}
+            <div className="mb-5">
+              {day.galacticCenter ? (
+                <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-emerald-300">
+                    🌌 Milky Way core visible {day.galacticCenter.rise} – {day.galacticCenter.set}
+                  </p>
+                  <p className="text-[10px] text-emerald-200/70 mt-1">
+                    Window clamped to astronomical night{day.moonLevel >= 8 ? ' — bright moon will wash out the core' : ''}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-slate-700/30 border border-slate-600/30 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-slate-300">
+                    🌌 Milky Way core not in dark sky tonight
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    The core rises only during daytime/evening twilight this time of year
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Sun & Moon Times */}
             {day.sunMoon && (
               <div className="mb-5">

@@ -2,15 +2,16 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
-import { getMoonLevel, getGCNightWindow, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
+import { getMoonLevel, getGCNightWindow, getMilkyWaySeason, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
 import { fetchWeatherForMonth, fetchLightPollution } from '@/app/actions';
 import PageWrapper from '@/components/layout/PageWrapper';
 import LocationSearch from '@/components/shared/LocationSearch';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import DayDetailsModal from '@/components/calendar/DayDetailsModal';
 import BestDaysSummary from '@/components/calendar/BestDaysSummary';
+import MilkyWaySeasonBanner from '@/components/calendar/MilkyWaySeasonBanner';
 import SettingsPanel from '@/components/layout/SettingsPanel';
 import NotificationBanner from '@/components/shared/NotificationBanner';
 import TonightForecast from '@/components/calendar/TonightForecast';
@@ -280,6 +281,11 @@ export default function CalendarPage() {
     fetchedRef.current = '';
   }, []);
 
+  const mwSeason = useMemo(
+    () => getMilkyWaySeason(calendar.year, calendar.month, coords.lat, coords.lng),
+    [calendar.year, calendar.month, coords.lat, coords.lng]
+  );
+
   const goodDays = calendar.days.filter(
     (d) => calcWeightedScore(d, scoreMode) >= 60
   ).length;
@@ -373,6 +379,9 @@ export default function CalendarPage() {
           ›
         </button>
       </div>
+
+      {/* Milky Way season indicator for this month/location */}
+      <MilkyWaySeasonBanner season={mwSeason} />
 
       {/* Today button — hidden when already on current month */}
       {!isCurrentMonth && (

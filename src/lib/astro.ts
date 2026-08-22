@@ -1,5 +1,5 @@
 import SunCalc from 'suncalc';
-import { GalacticCenterTime, MoonLevel, SunMoonTimes } from '@/types';
+import { GalacticCenterTime, MilkyWaySeason, MilkyWaySeasonLevel, MoonLevel, SunMoonTimes } from '@/types';
 
 const GC_RA = 266.4051;   // Galactic Center RA in degrees
 const GC_DEC = -28.936175; // Galactic Center Dec in degrees
@@ -182,6 +182,39 @@ function findAstronomicalDawn(date: Date, lat: number, lng: number): number {
     return (times.sunrise.getHours() + times.sunrise.getMinutes() / 60);
   }
   return 5; // ultimate fallback
+}
+
+/**
+ * Month-level Milky Way season for a location.
+ * A day counts as "visible" when the GC night window (clamped to
+ * astronomical night) exists, and "best" when the moon is dark (level <= 3).
+ */
+export function getMilkyWaySeason(
+  year: number,
+  month: number,
+  lat: number,
+  lng: number
+): MilkyWaySeason {
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  let visibleDays = 0;
+  let bestWindowDays = 0;
+
+  for (let day = 1; day <= totalDays; day++) {
+    const date = new Date(year, month, day);
+    const window = getGCNightWindow(date, lat, lng);
+    if (!window) continue;
+    visibleDays++;
+    if (getMoonLevel(date).level <= 3) bestWindowDays++;
+  }
+
+  const level: MilkyWaySeasonLevel =
+    bestWindowDays / totalDays >= 0.25
+      ? 'peak'
+      : visibleDays > 0
+        ? 'shoulder'
+        : 'off';
+
+  return { level, visibleDays, bestWindowDays, totalDays };
 }
 
 export function isGalacticCenterVisible(

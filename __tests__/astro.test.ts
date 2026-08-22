@@ -1,4 +1,4 @@
-import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel } from '@/lib/astro';
+import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel, getMilkyWaySeason } from '@/lib/astro';
 
 describe('astro functions', () => {
   // Test location: Chiang Mai, Thailand (18.79, 98.98)
@@ -54,6 +54,33 @@ describe('astro functions', () => {
 
       // Astronomical dawn (sun at -18°) should be before sunrise
       expect(dawnTime).toBeLessThan(sunriseTime);
+    });
+  });
+
+  describe('getMilkyWaySeason', () => {
+    it('reports a season with consistent day counts (Chiang Mai, any month)', () => {
+      const season = getMilkyWaySeason(2024, 5, CHIANG_MAI.lat, CHIANG_MAI.lng); // June 2024
+      expect(season.totalDays).toBe(30);
+      expect(season.visibleDays).toBeGreaterThanOrEqual(0);
+      expect(season.visibleDays).toBeLessThanOrEqual(season.totalDays);
+      expect(season.bestWindowDays).toBeLessThanOrEqual(season.visibleDays);
+      expect(['peak', 'shoulder', 'off']).toContain(season.level);
+    });
+
+    it('June in Chiang Mai is MW season (peak or shoulder, not off)', () => {
+      const season = getMilkyWaySeason(2024, 5, CHIANG_MAI.lat, CHIANG_MAI.lng);
+      expect(season.level).not.toBe('off');
+      expect(season.visibleDays).toBeGreaterThan(0);
+    });
+
+    it('December in Chiang Mai — GC not in dark sky', () => {
+      const season = getMilkyWaySeason(2024, 11, CHIANG_MAI.lat, CHIANG_MAI.lng);
+      expect(season.level).toBe('off');
+      expect(season.visibleDays).toBe(0);
+    });
+
+    it('does not throw at extreme latitude', () => {
+      expect(() => getMilkyWaySeason(2024, 11, 65, 20)).not.toThrow(); // Northern winter
     });
   });
 

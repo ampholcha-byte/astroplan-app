@@ -55,6 +55,15 @@ export interface CalendarMonth {
   days: DayData[];
 }
 
+export type MilkyWaySeasonLevel = 'peak' | 'shoulder' | 'off';
+
+export interface MilkyWaySeason {
+  level: MilkyWaySeasonLevel;
+  visibleDays: number;
+  bestWindowDays: number;
+  totalDays: number;
+}
+
 export interface LightPollutionData {
   brightness: number;
   bortleScale: number;
