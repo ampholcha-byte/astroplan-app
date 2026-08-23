@@ -1,7 +1,6 @@
 'use client';
 
 import { DayData } from '@/types';
-import PathGraphic from '@/components/shared/PathGraphic';
 
 interface DayCellProps {
   day: DayData;
@@ -88,11 +87,6 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
       onClick={onClick}
       aria-label={`Day ${day.date}, moon level ${day.moonLevel}, cloud ${day.cloudCoverPercentage !== null ? day.cloudCoverPercentage + '%' : 'no data'}${isToday ? ' (today)' : ''}`}
     >
-      {/* Holiday triangle */}
-      {day.isHoliday && (
-        <div className="absolute top-0 left-0 w-0 h-0 border-t-[14px] border-t-red-500 border-r-[14px] border-r-transparent" />
-      )}
-
       {/* Date number */}
       <span className="text-[11px] font-bold self-start">{day.date}</span>
 
@@ -141,9 +135,6 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
           )}
         </div>
       </div>
-
-      {/* Path graphic */}
-      <PathGraphic />
 
       {/* Hidden overlay */}
       {isHidden && (

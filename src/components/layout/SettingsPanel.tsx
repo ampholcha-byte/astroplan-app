@@ -72,20 +72,12 @@ export default function SettingsPanel({ settings, onSettingsChange, onClose, emb
         </select>
       </div>
 
-      {/* Auto GPS */}
+      {/* GPS hint — location is set via search bar 📡 button or /map instead */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm text-slate-300">Auto-detect location</div>
-          <div className="text-[10px] text-slate-500">Use GPS on app start</div>
+          <div className="text-sm text-slate-300">Location</div>
+          <div className="text-[10px] text-slate-500">ใช้ปุ่ม 📡 ในแถบค้นหา หรือหน้า Map เพื่อตั้งตำแหน่ง</div>
         </div>
-        <button
-          onClick={() => setLocal({ ...local, useGPS: !local.useGPS })}
-          className={`w-11 h-6 rounded-full transition-colors relative ${local.useGPS ? 'bg-indigo-600' : 'bg-slate-600'}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${local.useGPS ? 'translate-x-5' : ''}`}
-          />
-        </button>
       </div>
 
       {/* Weather info */}

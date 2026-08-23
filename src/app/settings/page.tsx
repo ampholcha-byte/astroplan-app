@@ -11,7 +11,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   latitude: 13.7563,
   longitude: 100.5018,
   timezone: 'Asia/Bangkok',
-  useGPS: false,
 };
 
 function loadSettings(): AppSettings {

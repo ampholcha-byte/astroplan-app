@@ -1,6 +1,6 @@
 'use client';
 
-export type ScoreMode = 'balanced' | 'moon' | 'cloud' | 'gc';
+export type ScoreMode = 'balanced' | 'moon' | 'gc';
 
 interface ScoreFilterProps {
   mode: ScoreMode;
@@ -12,7 +12,6 @@ interface ScoreFilterProps {
 const MODES: { key: ScoreMode; label: string; icon: string; desc: string }[] = [
   { key: 'balanced', label: 'Balanced', icon: '⚖️', desc: 'All factors equal' },
   { key: 'moon', label: 'Moon', icon: '🌙', desc: 'Prioritize dark skies' },
-  { key: 'cloud', label: 'Cloud', icon: '☁️', desc: 'Prioritize clear skies' },
   { key: 'gc', label: 'GC', icon: '🌌', desc: 'Prioritize GC visibility' },
 ];
 
@@ -59,7 +58,7 @@ export function calcWeightedScore(
   mode: ScoreMode,
   includeWeather = true
 ): number {
-  if (day.visibility === 'hidden' && mode !== 'cloud') return 0;
+  if (day.visibility === 'hidden') return 0;
 
   const hasCloud = includeWeather && day.cloudCoverPercentage !== null;
   let score = 100;
@@ -69,14 +68,6 @@ export function calcWeightedScore(
       // Moon is most important (dark sky), then cloud, then GC
       score -= (day.moonLevel - 1) * 12;
       if (hasCloud) score -= day.cloudCoverPercentage! * 0.3;
-      if (!day.galacticCenter) score -= 10;
-      break;
-
-    case 'cloud':
-      // Cloud is most important (clear sky), then moon, then GC
-      if (hasCloud) score -= day.cloudCoverPercentage! * 0.8;
-      else score -= 20; // Penalty for unknown cloud data
-      score -= (day.moonLevel - 1) * 5;
       if (!day.galacticCenter) score -= 10;
       break;
 

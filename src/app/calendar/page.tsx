@@ -14,7 +14,6 @@ import BestDaysSummary from '@/components/calendar/BestDaysSummary';
 import MilkyWaySeasonBanner from '@/components/calendar/MilkyWaySeasonBanner';
 import MonthTimeline from '@/components/calendar/MonthTimeline';
 import SettingsPanel from '@/components/layout/SettingsPanel';
-import NotificationBanner from '@/components/shared/NotificationBanner';
 import TonightForecast from '@/components/calendar/TonightForecast';
 import ScoreFilter, { ScoreMode, calcWeightedScore } from '@/components/calendar/ScoreFilter';
 
@@ -32,7 +31,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   latitude: DEFAULT_LAT,
   longitude: DEFAULT_LNG,
   timezone: 'Asia/Bangkok',
-  useGPS: false,
 };
 
 function loadSettings(): AppSettings {
@@ -71,13 +69,11 @@ function createDay(
   const weather = cached?.weather ?? null;
   const cloudSource: CloudSource = cached?.source ?? 'none';
 
-  const isHoliday = date === 1;
   const sunMoon = getSunMoonTimes(dateObj, lat, lng);
 
   return {
     id,
     date,
-    isHoliday,
     moonLevel: moon.level,
     moonPercentage: Math.round(moon.fraction * 100),
     cloudCoverPercentage: weather?.cloudCoverPercentage ?? null,
@@ -453,9 +449,6 @@ export default function CalendarPage() {
 
       {/* Best days summary */}
       <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} includeWeather={includeWeather} />
-
-      {/* Notification banner */}
-      <NotificationBanner days={calendar.days} />
 
       {/* Day details modal */}
       {selectedDay && (

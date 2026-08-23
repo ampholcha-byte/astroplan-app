@@ -97,9 +97,6 @@ export default function DayDetailsModal({ day, onClose, locationName, includeWea
         <div className="flex justify-between items-center mb-5">
           <div>
             <h2 className="text-xl font-bold text-white">{day.id}</h2>
-            {day.isHoliday && (
-              <span className="text-xs text-red-400 font-medium">🎉 Holiday</span>
-            )}
           </div>
           <button
             onClick={onClose}

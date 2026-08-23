@@ -44,7 +44,6 @@ export interface SunMoonTimes {
 export interface DayData {
   id: string;
   date: number;
-  isHoliday: boolean;
   moonLevel: MoonLevel;
   moonPercentage: number;
   cloudCoverPercentage: number | null;
@@ -98,5 +97,4 @@ export interface AppSettings {
   latitude: number;
   longitude: number;
   timezone: string;
-  useGPS: boolean;
 }
