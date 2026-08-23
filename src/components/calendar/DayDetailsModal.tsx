@@ -115,6 +115,9 @@ export default function DayDetailsModal({ day, onClose, locationName, includeWea
           </div>
         ) : (
           <>
+            {/* Sky timeline visual (bands + hourly GC positions) — the highlight, first thing you see */}
+            <SkyTimeline day={day} />
+
             {/* Score card */}
             <div className="bg-slate-700/40 rounded-xl p-4 mb-5 text-center">
               <div className={`text-4xl font-black ${score.color}`}>{score.score}</div>
@@ -182,9 +185,6 @@ export default function DayDetailsModal({ day, onClose, locationName, includeWea
                 </div>
               )}
             </div>
-
-            {/* Sky timeline visual (bands + hourly GC positions) */}
-            <SkyTimeline day={day} />
 
             {/* Milky Way core visibility during darkness */}
             <div className="mb-5">
