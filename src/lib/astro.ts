@@ -3,6 +3,9 @@ import { GalacticCenterTime, GCPosition, MilkyWaySeason, MilkyWaySeasonLevel, Mo
 
 const GC_RA = 266.4051;   // Galactic Center RA in degrees
 const GC_DEC = -28.936175; // Galactic Center Dec in degrees
+// Minimum usable altitude for the GC window — below this the core is lost to
+// horizon haze/trees. Matches typical MW-planner practice (~10°).
+const GC_MIN_ALT_DEG = 10;
 
 export function getMoonLevel(date: Date): {
   fraction: number;
@@ -72,26 +75,72 @@ export function getGalacticCenterTimes(
     return null;
   }
 
-  const H = toDegrees(Math.acos(cosH));
-  const gcRA = GC_RA;
-
+  // Scan the local day (noon → next noon) for crossings of the usable-altitude
+  // threshold using the same LST formula as getGCPosition (authoritative path).
+  // The previous noon-LST + timezone-offset derivation drifted ~5h.
   const noon = new Date(date);
   noon.setHours(12, 0, 0, 0);
-  const lstNoon = getLocalSiderealTime(noon, lng);
 
-  const hourAngleRise = -H;
-  const hourAngleSet = H;
+  const altAt = (t: Date): number => {
+    const lst = getLocalSiderealTime(t, lng);
+    let hourAngle = lst - GC_RA;
+    hourAngle = ((hourAngle + 180) % 360 + 360) % 360 - 180;
+    const HRad = toRadians(hourAngle);
+    const sinAlt =
+      Math.sin(decRad) * Math.sin(latRad) +
+      Math.cos(decRad) * Math.cos(latRad) * Math.cos(HRad);
+    return Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+  };
+  const threshold = toRadians(GC_MIN_ALT_DEG);
+  const usable = (t: Date): boolean => altAt(t) >= threshold;
 
-  let riseHours = ((gcRA + hourAngleRise - lstNoon) / 360) * 24;
-  let setHours = ((gcRA + hourAngleSet - lstNoon) / 360) * 24;
+  // Night hours relevant to the evening's date: 18:00 → 06:00 next morning
+  const NIGHT_START_MS = 6 * 3600_000;  // noon + 6h = 18:00
+  const NIGHT_END_MS = 18 * 3600_000;   // noon + 18h = 06:00 next day
 
-  const utcOffset = -date.getTimezoneOffset() / 60;
-  riseHours += utcOffset;
-  setHours += utcOffset;
+  const STEP_MS = 5 * 60_000;
+  const intervals: { start: Date; end: Date }[] = [];
+  let prevT = noon;
+  let prevUp = usable(noon);
+  let intervalStart: Date | null = prevUp ? noon : null;
+
+  const refine = (lo: Date, hi: Date, targetUp: boolean): Date => {
+    let a = lo, b = hi;
+    for (let i = 0; i < 6; i++) {
+      const mid = new Date((a.getTime() + b.getTime()) / 2);
+      if (usable(mid) !== targetUp) a = mid; else b = mid;
+    }
+    return b;
+  };
+
+  const scanEnd = new Date(noon.getTime() + NIGHT_END_MS);
+  for (let t = new Date(noon.getTime() + STEP_MS); t <= scanEnd; t = new Date(t.getTime() + STEP_MS)) {
+    const up = usable(t);
+    if (!prevUp && up) {
+      intervalStart = refine(prevT, t, true);
+    } else if (prevUp && !up && intervalStart) {
+      intervals.push({ start: intervalStart, end: refine(prevT, t, false) });
+      intervalStart = null;
+    }
+    prevT = t;
+    prevUp = up;
+  }
+  if (intervalStart) {
+    intervals.push({ start: intervalStart, end: scanEnd });
+  }
+
+  // Keep intervals overlapping the night span; merge from first rise to last set
+  const nightStart = noon.getTime() + NIGHT_START_MS;
+  const nightEnd = noon.getTime() + NIGHT_END_MS;
+  const overlapping = intervals.filter((iv) => iv.end.getTime() >= nightStart && iv.start.getTime() <= nightEnd);
+  if (overlapping.length === 0) return null;
+
+  const rise = new Date(Math.min(...overlapping.map((iv) => iv.start.getTime())));
+  const set = new Date(Math.max(...overlapping.map((iv) => iv.end.getTime())));
 
   return {
-    rise: formatTime(riseHours),
-    set: formatTime(setHours),
+    rise: formatTimeFromDate(rise),
+    set: formatTimeFromDate(set),
   };
 }
 
@@ -110,22 +159,21 @@ export function getGCNightWindow(
 
   const sunMoon = getSunMoonTimes(date, lat, lng);
 
-  // Parse "HH:MM" to fractional hours
-  const parseTime = (t: string): number => {
+  // Parse "HH:MM" to fractional hours on the night domain (12h–36h):
+  // morning times (before noon) belong to the next calendar day.
+  const parseNightTime = (t: string): number => {
     const [h, m] = t.split(':').map(Number);
-    return h + m / 60;
+    let hours = h + m / 60;
+    if (hours < 12) hours += 24;
+    return hours;
   };
 
-  const gcRise = parseTime(gcTimes.rise);
-  const gcSet = parseTime(gcTimes.set);
-  const nightStartTime = parseTime(sunMoon.nightStart);
+  const gcRise = parseNightTime(gcTimes.rise);
+  const gcSet = parseNightTime(gcTimes.set);
+  const nightStartTime = parseNightTime(sunMoon.nightStart);
 
   // Find astronomical dawn (sun at -18° going up) for night end
   const nightEndTime = findAstronomicalDawn(date, lat, lng);
-
-  // Handle wrap-around: night may span midnight
-  // GC window may also span midnight
-  // We need intersection of [gcRise, gcSet] and [nightStart, nightEnd]
 
   // Normalize: if gcSet < gcRise, GC spans midnight → add 24 to set
   const gcSetNorm = gcSet < gcRise ? gcSet + 24 : gcSet;
@@ -134,8 +182,10 @@ export function getGCNightWindow(
   const windowStart = Math.max(gcRise, nightStartTime);
   const windowEnd = Math.min(gcSetNorm, nightEndNorm);
 
-  if (windowStart >= windowEnd) {
-    return null; // No overlap — GC not visible during dark night
+  // Discard windows too short to shoot through (horizon-hugging junk)
+  const MIN_WINDOW_H = 0.5;
+  if (windowEnd - windowStart < MIN_WINDOW_H) {
+    return null;
   }
 
   return {

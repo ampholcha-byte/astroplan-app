@@ -151,10 +151,12 @@ describe('astro functions', () => {
           expect(result.rise).toMatch(/^\d{2}:\d{2}$/);
           expect(result.set).toMatch(/^\d{2}:\d{2}$/);
 
-          // Parse times for validation
+          // Parse times on the night domain (morning times = next day, +24)
           const parseTime = (t: string) => {
             const [h, m] = t.split(':').map(Number);
-            return h + m / 60;
+            let hours = h + m / 60;
+            if (hours < 12) hours += 24;
+            return hours;
           };
 
           const rise = parseTime(result.rise);
@@ -163,9 +165,9 @@ describe('astro functions', () => {
           // Rise should be before set (after normalization)
           expect(rise).toBeLessThan(set);
 
-          // Both should be within night hours (typically 18:00 - 06:00)
-          expect(rise).toBeGreaterThanOrEqual(0);
-          expect(set).toBeLessThanOrEqual(24);
+          // Both should be within night hours on the 12–36h domain (18:00 → 06:00)
+          expect(rise).toBeGreaterThanOrEqual(12);
+          expect(set).toBeLessThanOrEqual(30);
         }
       }
     });
@@ -176,6 +178,39 @@ describe('astro functions', () => {
       expect(() => {
         isGalacticCenterVisible(date, 89, 0); // Near North Pole
       }).not.toThrow();
+    });
+
+    // ── Regression: GC rise/set was ~5h off before (noon-LST + tz-offset bug) ──
+
+    it('mid-August window at Bangkok runs ~6h (GC sets after midnight)', () => {
+      const win = getGCNightWindow(new Date(2026, 7, 15), 13.7563, 100.5018);
+      expect(win).not.toBeNull();
+      const parse = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        let hours = h + m / 60;
+        if (hours < 12) hours += 24;
+        return hours;
+      };
+      const rise = parse(win!.rise);
+      const set = parse(win!.set);
+      expect(set - rise).toBeGreaterThanOrEqual(4); // real window is ~5h, was ~1h with the bug
+    });
+
+    it('mid-May usable rise at Bangkok is late evening (~21-22h) — matches reference apps', () => {
+      const win = getGCNightWindow(new Date(2026, 4, 15), 13.7563, 100.5018);
+      expect(win).not.toBeNull();
+      const [h] = win!.rise.split(':').map(Number);
+      expect(h).toBeGreaterThanOrEqual(21);
+    });
+
+    it('November 15 at Bangkok has no usable window (horizon-hugging core filtered)', () => {
+      const win = getGCNightWindow(new Date(2026, 10, 15), 13.7563, 100.5018);
+      expect(win).toBeNull();
+    });
+
+    it('September at Bangkok is a full MW month (was wrongly 3 nights before the fix)', () => {
+      const season = getMilkyWaySeason(2026, 8, 13.7563, 100.5018);
+      expect(season.visibleDays).toBeGreaterThanOrEqual(25);
     });
   });
 });
