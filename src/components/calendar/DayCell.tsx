@@ -83,29 +83,29 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
   return (
     <button
       type="button"
-      className={`${bgColor} ${textColor} aspect-[5/6] flex flex-col items-center justify-between p-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900 z-10' : ''}`}
+      className={`${bgColor} ${textColor} aspect-[5/6] flex flex-col items-center justify-between px-0.5 py-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900 z-10' : ''}`}
       onClick={onClick}
       aria-label={`Day ${day.date}, moon level ${day.moonLevel}, cloud ${day.cloudCoverPercentage !== null ? day.cloudCoverPercentage + '%' : 'no data'}${isToday ? ' (today)' : ''}`}
     >
       {/* Date number */}
-      <span className="text-[11px] font-bold self-start">{day.date}</span>
+      <span className="text-[10px] font-bold self-start leading-none">{day.date}</span>
 
       {/* Quality stars — top right (replaces old indigo dot) */}
       {quality && (
-        <span className={`absolute top-0.5 right-0.5 text-[10px] font-bold ${quality.color}`}>{quality.label}</span>
+        <span className={`absolute top-0.5 right-0.5 text-[8px] font-bold leading-none ${quality.color}`}>{quality.label}</span>
       )}
 
       {/* Center info */}
-      <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
+      <div className="flex flex-col items-center gap-[1px] flex-1 justify-center">
         {/* Galactic Center rise/set — clamped to Astronomical Night, with compass direction */}
         {day.galacticCenter && (
           <>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC visible (dark night) — face this direction">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+            <div className="flex items-center gap-[2px] text-[7px] leading-none whitespace-nowrap" title="GC visible (dark night) — face this direction">
+              <span className="inline-block w-1 h-1 rounded-full bg-emerald-400" />
               <span>{riseDir} {day.galacticCenter.rise}</span>
             </div>
-            <div className="flex items-center gap-0.5 text-[8px] leading-tight" title="GC window ends (sets or night ends)">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 shadow-sm shadow-rose-400/50" />
+            <div className="flex items-center gap-[2px] text-[7px] leading-none whitespace-nowrap" title="GC window ends (sets or night ends)">
+              <span className="inline-block w-1 h-1 rounded-full bg-rose-400" />
               <span>{setDir} {day.galacticCenter.set}</span>
             </div>
           </>
@@ -114,7 +114,7 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
         {/* Off-season: GC rises only in daylight — faint ✕ so the cell explains itself */}
         {isOffSeason && (
           <span
-            className="text-[10px] leading-none text-slate-500/60 select-none"
+            className="text-[9px] leading-none text-slate-500/60 select-none"
             title="GC ขึ้นเฉพาะกลางวันช่วงนี้ — คืนเดือนมืดยังถ่ายดาวได้"
           >
             ✕
@@ -122,16 +122,16 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
         )}
 
         {/* Cloud cover + source indicator */}
-        <div className="flex items-center gap-0.5 text-[8px] opacity-70">
+        <div className="flex items-center gap-[2px] text-[7px] leading-none opacity-70 whitespace-nowrap">
           {day.cloudCoverPercentage !== null ? (
             <>
-              <span>☁ {day.cloudCoverPercentage}%</span>
+              <span>☁{day.cloudCoverPercentage}%</span>
               {day.cloudSource === 'api' && (
                 <span className="text-emerald-400" title="Live weather data">●</span>
               )}
             </>
           ) : (
-            <span className="text-slate-500">☁ —</span>
+            <span className="text-slate-500">☁—</span>
           )}
         </div>
       </div>
