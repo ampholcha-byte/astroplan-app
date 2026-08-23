@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DayData } from '@/types';
+import { getMWBandPoints } from '@/lib/astro';
 
 interface SkyTimelineProps {
   day: DayData;
+  lat: number;
+  lng: number;
 }
 
 const START_H = 18; // timeline domain: 18:00 → 06:00 next morning
@@ -66,10 +69,36 @@ function altToY(alt: number): number {
   return HORIZON_Y - (Math.max(0, alt) / 90) * (HORIZON_Y - ALT_TOP_Y);
 }
 
-export default function SkyTimeline({ day }: SkyTimelineProps) {
+export default function SkyTimeline({ day, lat, lng }: SkyTimelineProps) {
   const sunMoon = day.sunMoon;
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [focal, setFocal] = useState(14);
+
+  // MW band geometry at the selected hour (kept above the early return — hook order)
+  const mwBand = useMemo(() => {
+    const [y, m, d] = day.id.split('-').map(Number);
+    const base = new Date(y, m - 1, d).getTime();
+    const t = new Date(base + (START_H + (selectedIdx ?? 6)) * 3600_000);
+    return getMWBandPoints(t, lat, lng, 5);
+  }, [day.id, selectedIdx, lat, lng]);
+
+  // Split band into above-horizon polyline segments (panorama covers az 90–270)
+  const mwSegments = useMemo(() => {
+    const segs: string[] = [];
+    let current = '';
+    for (const p of mwBand) {
+      if (p.altitude >= -1 && p.azimuth >= AZ_MIN - 20 && p.azimuth <= AZ_MAX + 20) {
+        const px = azToX(p.azimuth);
+        const py = altToY(p.altitude);
+        current += `${current ? ' L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`;
+      } else if (current) {
+        segs.push(current);
+        current = '';
+      }
+    }
+    if (current) segs.push(current);
+    return segs;
+  }, [mwBand]);
 
   if (!sunMoon || !day.gcPositions) return null;
 
@@ -205,8 +234,31 @@ export default function SkyTimeline({ day }: SkyTimelineProps) {
               <stop offset="0%" stopColor="#1e1b4b" />
               <stop offset="100%" stopColor="#0f172a" />
             </linearGradient>
+            <filter id="mwBlur" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.5" />
+            </filter>
           </defs>
           <rect x={0} y={0} width={PW} height={HORIZON_Y} fill="url(#skyGrad)" rx={4} />
+
+          {/* Milky Way band — "river of light" style (soft wide haze + bright core line + star specks) */}
+          {mwSegments.map((seg, i) => (
+            <path key={`haze-${i}`} d={seg} fill="none" stroke="#94a3b8" strokeOpacity={0.28} strokeWidth={13} strokeLinecap="round" filter="url(#mwBlur)" />
+          ))}
+          {mwSegments.map((seg, i) => (
+            <path key={`core-${i}`} d={seg} fill="none" stroke="#e2e8f0" strokeOpacity={0.55} strokeWidth={3.5} strokeLinecap="round" />
+          ))}
+          {mwBand.map((p, i) =>
+            p.altitude >= 4 && p.azimuth >= AZ_MIN && p.azimuth <= AZ_MAX && i % 2 === 0 ? (
+              <circle
+                key={`star-${i}`}
+                cx={azToX(p.azimuth) + Math.sin(i * 3.7) * 5}
+                cy={altToY(p.altitude) + Math.cos(i * 2.9) * 4}
+                r={0.7 + (i % 3) * 0.35}
+                className="fill-white"
+                opacity={0.35 + (i % 4) * 0.12}
+              />
+            ) : null
+          )}
 
           {/* altitude grid */}
           {[30, 60].map((alt) => (

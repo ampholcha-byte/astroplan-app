@@ -10,6 +10,8 @@ interface DayDetailsModalProps {
   onClose: () => void;
   locationName?: string;
   includeWeather?: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 const MOON_LABEL: Record<number, string> = {
@@ -80,7 +82,7 @@ function getOverallScore(day: DayData, includeWeather = true): { score: number; 
   return { score, label: 'Very Poor', color: 'text-red-400' };
 }
 
-export default function DayDetailsModal({ day, onClose, locationName, includeWeather = true }: DayDetailsModalProps) {
+export default function DayDetailsModal({ day, onClose, locationName, includeWeather = true, lat = 13.7563, lng = 100.5018 }: DayDetailsModalProps) {
   const score = getOverallScore(day, includeWeather);
   const advice = getShootingAdvice(day);
 
@@ -116,7 +118,7 @@ export default function DayDetailsModal({ day, onClose, locationName, includeWea
         ) : (
           <>
             {/* Sky timeline visual (bands + hourly GC positions) — the highlight, first thing you see */}
-            <SkyTimeline day={day} />
+            <SkyTimeline day={day} lat={lat} lng={lng} />
 
             {/* Score card */}
             <div className="bg-slate-700/40 rounded-xl p-4 mb-5 text-center">

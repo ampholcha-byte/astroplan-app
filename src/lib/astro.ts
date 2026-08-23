@@ -258,6 +258,95 @@ export function getGCPositionsForNight(
   return positions;
 }
 
+/** Horizontal (alt/az) position of an arbitrary equatorial RA/Dec at a time. */
+function altAzForRaDec(
+  raDeg: number,
+  decDeg: number,
+  t: Date,
+  lat: number,
+  lng: number
+): { altitude: number; azimuth: number } {
+  const lst = getLocalSiderealTime(t, lng);
+  let hourAngle = lst - raDeg;
+  hourAngle = ((hourAngle + 180) % 360 + 360) % 360 - 180;
+
+  const decRad = toRadians(decDeg);
+  const latRad = toRadians(lat);
+  const HRad = toRadians(hourAngle);
+
+  const sinAlt =
+    Math.sin(decRad) * Math.sin(latRad) +
+    Math.cos(decRad) * Math.cos(latRad) * Math.cos(HRad);
+  const altRad = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+
+  const cosAz =
+    (Math.sin(decRad) - Math.sin(altRad) * Math.sin(latRad)) /
+    (Math.cos(altRad) * Math.cos(latRad));
+  let az = toDegrees(Math.acos(Math.max(-1, Math.min(1, cosAz))));
+  if (Math.sin(HRad) > 0) az = 360 - az;
+
+  return { altitude: toDegrees(altRad), azimuth: az };
+}
+
+/** Unit vector from equatorial RA/Dec (degrees). */
+function unitFromRaDec(raDeg: number, decDeg: number): [number, number, number] {
+  const ra = toRadians(raDeg);
+  const dec = toRadians(decDeg);
+  return [Math.cos(dec) * Math.cos(ra), Math.cos(dec) * Math.sin(ra), Math.sin(dec)];
+}
+
+/** Rodrigues rotation of vector v around unit axis k by angle (radians). */
+function rotateAround(
+  v: [number, number, number],
+  k: [number, number, number],
+  angleRad: number
+): [number, number, number] {
+  const c = Math.cos(angleRad);
+  const s = Math.sin(angleRad);
+  const dot = v[0] * k[0] + v[1] * k[1] + v[2] * k[2];
+  const cross: [number, number, number] = [
+    k[1] * v[2] - k[2] * v[1],
+    k[2] * v[0] - k[0] * v[2],
+    k[0] * v[1] - k[1] * v[0],
+  ];
+  return [
+    v[0] * c + cross[0] * s + k[0] * dot * (1 - c),
+    v[1] * c + cross[1] * s + k[1] * dot * (1 - c),
+    v[2] * c + cross[2] * s + k[2] * dot * (1 - c),
+  ];
+}
+
+export interface SkyPoint {
+  altitude: number;
+  azimuth: number;
+}
+
+// Galactic pole (RA/Dec in degrees) — rotation axis of the galactic plane
+const GAL_POLE_RA = 192.85948;
+const GAL_POLE_DEC = 27.12825;
+
+/**
+ * Sample points along the galactic equator (the Milky Way band) for a time
+ * and location. Sample 0 is the Galactic Center itself.
+ */
+export function getMWBandPoints(
+  t: Date,
+  lat: number,
+  lng: number,
+  stepDeg = 10
+): SkyPoint[] {
+  const pole = unitFromRaDec(GAL_POLE_RA, GAL_POLE_DEC);
+  const gc = unitFromRaDec(GC_RA, GC_DEC);
+  const points: SkyPoint[] = [];
+  for (let l = 0; l < 360; l += stepDeg) {
+    const v = rotateAround(gc, pole, toRadians(l));
+    const ra = (toDegrees(Math.atan2(v[1], v[0])) + 360) % 360;
+    const dec = toDegrees(Math.asin(Math.max(-1, Math.min(1, v[2]))));
+    points.push(altAzForRaDec(ra, dec, t, lat, lng));
+  }
+  return points;
+}
+
 /**
  * Find astronomical dawn time (sun at -18°) by checking hourly.
  * This is when true night ends in the morning.

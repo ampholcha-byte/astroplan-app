@@ -479,6 +479,8 @@ export default function CalendarPage() {
           onClose={() => setSelectedDay(null)}
           locationName={location?.displayName ?? ''}
           includeWeather={includeWeather}
+          lat={coords.lat}
+          lng={coords.lng}
         />
       )}
 

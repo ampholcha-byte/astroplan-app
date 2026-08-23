@@ -1,4 +1,4 @@
-import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel, getMilkyWaySeason, getGCPosition, getGCPositionsForNight, azimuthToDirection } from '@/lib/astro';
+import { getGCNightWindow, getSunMoonTimes, isGalacticCenterVisible, getMoonLevel, getMilkyWaySeason, getGCPosition, getGCPositionsForNight, azimuthToDirection, getMWBandPoints } from '@/lib/astro';
 
 describe('astro functions', () => {
   // Test location: Chiang Mai, Thailand (18.79, 98.98)
@@ -123,6 +123,32 @@ describe('astro functions', () => {
       expect(azimuthToDirection(180)).toBe('S');
       expect(azimuthToDirection(270)).toBe('W');
       expect(azimuthToDirection(225)).toBe('SW');
+    });
+  });
+
+  describe('getMWBandPoints', () => {
+    it('sample 0 is the Galactic Center itself', () => {
+      const t = new Date(2026, 7, 15, 22, 0, 0);
+      const band = getMWBandPoints(t, CHIANG_MAI.lat, CHIANG_MAI.lng, 10);
+      const gc = getGCPosition(t, CHIANG_MAI.lat, CHIANG_MAI.lng);
+      expect(Math.abs(band[0].altitude - gc.altitude)).toBeLessThan(0.01);
+      expect(Math.abs(band[0].azimuth - gc.azimuth)).toBeLessThan(0.01);
+    });
+
+    it('returns points around the full galactic equator with valid coordinates', () => {
+      const t = new Date(2026, 7, 15, 22, 0, 0);
+      const band = getMWBandPoints(t, CHIANG_MAI.lat, CHIANG_MAI.lng, 15);
+      expect(band).toHaveLength(24);
+      for (const p of band) {
+        expect(p.altitude).toBeGreaterThanOrEqual(-90);
+        expect(p.altitude).toBeLessThanOrEqual(90);
+        expect(p.azimuth).toBeGreaterThanOrEqual(0);
+        expect(p.azimuth).toBeLessThanOrEqual(360);
+      }
+      // band points are all equidistant from the galactic pole → same |lat - dec| max altitude:
+      // at least one point should be well above the horizon in an August evening
+      const maxAlt = Math.max(...band.map((p) => p.altitude));
+      expect(maxAlt).toBeGreaterThan(40);
     });
   });
 
