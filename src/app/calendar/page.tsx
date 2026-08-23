@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Coordinates, DayData, CalendarMonth, AppSettings, WeatherData, CloudSource, LightPollutionData } from '@/types';
 import { getMoonLevel, getGCNightWindow, getGCPositionsForNight, getMilkyWaySeason, isGalacticCenterVisible, getSunMoonTimes } from '@/lib/astro';
@@ -26,6 +27,7 @@ const DEFAULT_LAT = 13.7563;
 const DEFAULT_LNG = 100.5018;
 
 const SETTINGS_STORAGE_KEY = 'astroplan-settings';
+const LOCATION_STORAGE_KEY = 'astroplan-location';
 
 const DEFAULT_SETTINGS: AppSettings = {
   latitude: DEFAULT_LAT,
@@ -198,14 +200,26 @@ export default function CalendarPage() {
 
   useEffect(() => {
     // Client-only hydration of localStorage state (correct pattern, no loop).
-    // Apply the saved location unless the user already picked one this session.
+    // Saved location (name + coords) takes precedence; fall back to raw settings coords.
     const s = loadSettings();
+    let savedLocation: Coordinates | null = null;
+    try {
+      const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number' && parsed.displayName) {
+          savedLocation = parsed as Coordinates;
+        }
+      }
+    } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSettings(s);
-    if (!location) {
+    if (savedLocation) {
+      setLocation(savedLocation);
+      setCoords({ lat: savedLocation.lat, lng: savedLocation.lng });
+    } else {
       setCoords({ lat: s.latitude, lng: s.longitude });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const buildAndApply = useCallback(
@@ -286,6 +300,15 @@ export default function CalendarPage() {
     setLocation(newCoords);
     setCoords({ lat: newCoords.lat, lng: newCoords.lng });
     fetchedRef.current = '';
+    try {
+      localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newCoords));
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      const current: AppSettings = raw ? JSON.parse(raw) : {} as AppSettings;
+      localStorage.setItem(
+        SETTINGS_STORAGE_KEY,
+        JSON.stringify({ ...current, latitude: newCoords.lat, longitude: newCoords.lng })
+      );
+    } catch { /* ignore */ }
   }, []);
 
   const mwSeason = useMemo(
@@ -313,13 +336,14 @@ export default function CalendarPage() {
 
   return (
     <PageWrapper>
-      {/* Location search */}
-      <LocationSearch onLocationSelect={handleLocationSelect} />
-
-      {/* Location display — name + province, light pollution color bar */}
-      {location && (
+      {/* Location — first run: full search. After that: compact bar (change via Settings) */}
+      {!location ? (
+        <div className="mb-4">
+          <p className="text-xs text-slate-400 mb-2">📍 เลือกสถานที่ถ่ายครั้งแรก แล้วระบบจะจำไว้ให้ (เปลี่ยนได้ที่หน้า Settings)</p>
+          <LocationSearch onLocationSelect={handleLocationSelect} />
+        </div>
+      ) : (
         <div className="rounded-lg overflow-hidden mb-3 border border-slate-700/50">
-          {/* Light pollution color bar (top) */}
           {lightPollution && (
             <div
               className="h-1.5 w-full"
@@ -331,38 +355,15 @@ export default function CalendarPage() {
             <p className="text-sm text-slate-200 font-medium truncate">
               📍 {shortLocationName(location.displayName)}
             </p>
-            {lightPollution && (
-              <span className="text-[10px] text-slate-500 shrink-0">
-                {lightPollution.label}
-              </span>
-            )}
+            <Link
+              href="/settings"
+              className="text-[10px] text-indigo-400 hover:text-indigo-300 underline shrink-0"
+            >
+              เปลี่ยนสถานที่
+            </Link>
           </div>
         </div>
       )}
-
-      {/* Tonight's Forecast Card */}
-      {isCurrentMonth && todayDay && (
-        <TonightForecast today={todayDay} tomorrow={tomorrowDay} onDayClick={setSelectedDay} includeWeather={includeWeather} />
-      )}
-
-      {/* Weather status */}
-      <div className="flex items-center gap-2 mb-2">
-        {weatherLoading && (
-          <span className="text-[10px] text-indigo-400 animate-pulse">⏳ Loading weather...</span>
-        )}
-        {!weatherLoading && apiDays > 0 && (
-          <span className="text-[10px] text-emerald-400">🌤 Live weather (Open-Meteo)</span>
-        )}
-        {!weatherLoading && apiDays === 0 && (
-          <span className="text-[10px] text-yellow-400">⚠️ No forecast data (date out of 7-day range)</span>
-        )}
-      </div>
-      <p className="text-[9px] text-slate-600 mb-2">
-        พยากรณ์เมฆครอบคลุม ~7 วันข้างหน้า — วันที่เกินกว่านั้น คะแนนคำนวณจากดวงจันทร์+GC อย่างเดียว (เช็กอากาศอีกครั้งเมื่อใกล้วันจริง)
-      </p>
-
-      {/* Score Filter */}
-      <ScoreFilter mode={scoreMode} onChange={setScoreMode} includeWeather={includeWeather} onIncludeWeatherChange={setIncludeWeather} />
 
       {/* Month navigation */}
       <div className="flex items-center justify-between w-full mb-3">
@@ -445,6 +446,30 @@ export default function CalendarPage() {
       ) : (
         <MonthTimeline days={calendar.days} onDayClick={setSelectedDay} />
       )}
+
+      {/* Tonight's Forecast Card */}
+      {isCurrentMonth && todayDay && (
+        <TonightForecast today={todayDay} tomorrow={tomorrowDay} onDayClick={setSelectedDay} includeWeather={includeWeather} />
+      )}
+
+      {/* Weather status */}
+      <div className="flex items-center gap-2 mt-3 mb-2">
+        {weatherLoading && (
+          <span className="text-[10px] text-indigo-400 animate-pulse">⏳ Loading weather...</span>
+        )}
+        {!weatherLoading && apiDays > 0 && (
+          <span className="text-[10px] text-emerald-400">🌤 Live weather (Open-Meteo)</span>
+        )}
+        {!weatherLoading && apiDays === 0 && (
+          <span className="text-[10px] text-yellow-400">⚠️ No forecast data (date out of 7-day range)</span>
+        )}
+      </div>
+      <p className="text-[9px] text-slate-600 mb-2">
+        พยากรณ์เมฆครอบคลุม ~7 วันข้างหน้า — วันที่เกินกว่านั้น คะแนนคำนวณจากดวงจันทร์+GC อย่างเดียว (เช็กอากาศอีกครั้งเมื่อใกล้วันจริง)
+      </p>
+
+      {/* Score Filter */}
+      <ScoreFilter mode={scoreMode} onChange={setScoreMode} includeWeather={includeWeather} onIncludeWeatherChange={setIncludeWeather} />
 
       {/* Best days summary */}
       <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} includeWeather={includeWeather} />
