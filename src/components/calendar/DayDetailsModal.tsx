@@ -9,6 +9,7 @@ interface DayDetailsModalProps {
   day: DayData;
   onClose: () => void;
   locationName?: string;
+  includeWeather?: boolean;
 }
 
 const MOON_LABEL: Record<number, string> = {
@@ -64,12 +65,12 @@ function getShootingAdvice(day: DayData): string[] {
   return tips;
 }
 
-function getOverallScore(day: DayData): { score: number; label: string; color: string } {
+function getOverallScore(day: DayData, includeWeather = true): { score: number; label: string; color: string } {
   if (day.visibility === 'hidden') return { score: 0, label: 'Not Visible', color: 'text-gray-400' };
 
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
-  if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
+  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   if (score >= 80) return { score, label: 'Excellent', color: 'text-green-400' };
@@ -79,8 +80,8 @@ function getOverallScore(day: DayData): { score: number; label: string; color: s
   return { score, label: 'Very Poor', color: 'text-red-400' };
 }
 
-export default function DayDetailsModal({ day, onClose, locationName }: DayDetailsModalProps) {
-  const score = getOverallScore(day);
+export default function DayDetailsModal({ day, onClose, locationName, includeWeather = true }: DayDetailsModalProps) {
+  const score = getOverallScore(day, includeWeather);
   const advice = getShootingAdvice(day);
 
   return (
@@ -121,7 +122,9 @@ export default function DayDetailsModal({ day, onClose, locationName }: DayDetai
             <div className="bg-slate-700/40 rounded-xl p-4 mb-5 text-center">
               <div className={`text-4xl font-black ${score.color}`}>{score.score}</div>
               <div className={`text-sm font-semibold ${score.color}`}>{score.label}</div>
-              <div className="text-[10px] text-gray-500 mt-1">Shooting Score</div>
+              <div className="text-[10px] text-gray-500 mt-1">
+                {includeWeather ? 'Shooting Score (moon + cloud)' : 'Astro Score (moon only — weather off)'}
+              </div>
             </div>
 
             {/* Details grid */}

@@ -176,6 +176,7 @@ export default function CalendarPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [scoreMode, setScoreMode] = useState<ScoreMode>('balanced');
+  const [includeWeather, setIncludeWeather] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('grid');
   const fetchedRef = useRef<string>('');
 
@@ -297,7 +298,7 @@ export default function CalendarPage() {
   );
 
   const goodDays = calendar.days.filter(
-    (d) => calcWeightedScore(d, scoreMode) >= 60
+    (d) => calcWeightedScore(d, scoreMode, includeWeather) >= 60
   ).length;
 
   const apiDays = calendar.days.filter((d) => d.cloudSource === 'api').length;
@@ -345,7 +346,7 @@ export default function CalendarPage() {
 
       {/* Tonight's Forecast Card */}
       {isCurrentMonth && todayDay && (
-        <TonightForecast today={todayDay} tomorrow={tomorrowDay} onDayClick={setSelectedDay} />
+        <TonightForecast today={todayDay} tomorrow={tomorrowDay} onDayClick={setSelectedDay} includeWeather={includeWeather} />
       )}
 
       {/* Weather status */}
@@ -365,7 +366,7 @@ export default function CalendarPage() {
       </p>
 
       {/* Score Filter */}
-      <ScoreFilter mode={scoreMode} onChange={setScoreMode} />
+      <ScoreFilter mode={scoreMode} onChange={setScoreMode} includeWeather={includeWeather} onIncludeWeatherChange={setIncludeWeather} />
 
       {/* Month navigation */}
       <div className="flex items-center justify-between w-full mb-3">
@@ -451,7 +452,7 @@ export default function CalendarPage() {
       )}
 
       {/* Best days summary */}
-      <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} />
+      <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} includeWeather={includeWeather} />
 
       {/* Notification banner */}
       <NotificationBanner days={calendar.days} />
@@ -462,6 +463,7 @@ export default function CalendarPage() {
           day={selectedDay}
           onClose={() => setSelectedDay(null)}
           locationName={location?.displayName ?? ''}
+          includeWeather={includeWeather}
         />
       )}
 

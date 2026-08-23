@@ -5,13 +5,14 @@ import { DayData } from '@/types';
 interface BestDaysSummaryProps {
   days: DayData[];
   onDayClick: (day: DayData) => void;
+  includeWeather?: boolean;
 }
 
-function getDayScore(day: DayData): number {
+function getDayScore(day: DayData, includeWeather = true): number {
   if (day.visibility === 'hidden') return 0;
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
-  if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
+  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
   // Bonus for dark sky (low light pollution)
   if (day.lightPollution) {
     score -= (day.lightPollution.bortleScale - 1) * 3;
@@ -19,10 +20,10 @@ function getDayScore(day: DayData): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-export default function BestDaysSummary({ days, onDayClick }: BestDaysSummaryProps) {
+export default function BestDaysSummary({ days, onDayClick, includeWeather = true }: BestDaysSummaryProps) {
   const ranked = days
     .filter((d) => d.visibility === 'visible')
-    .map((d) => ({ ...d, score: getDayScore(d) }))
+    .map((d) => ({ ...d, score: getDayScore(d, includeWeather) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 

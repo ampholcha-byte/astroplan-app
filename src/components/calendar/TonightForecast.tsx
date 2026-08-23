@@ -6,6 +6,7 @@ interface TonightForecastProps {
   today: DayData | null | undefined;
   tomorrow: DayData | null | undefined;
   onDayClick: (day: DayData) => void;
+  includeWeather?: boolean;
 }
 
 function getScoreEmoji(score: number): string {
@@ -32,11 +33,11 @@ function getScoreColor(score: number): string {
   return 'text-red-400';
 }
 
-function calcScore(day: DayData): number {
+function calcScore(day: DayData, includeWeather = true): number {
   if (day.visibility === 'hidden') return 0;
   let score = 100;
   score -= (day.moonLevel - 1) * 8;
-  if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
+  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
   if (!day.galacticCenter) score -= 30; // GC not visible during night
   return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -49,12 +50,12 @@ function MoonPhaseEmoji(level: number): string {
   return '🌕';
 }
 
-export default function TonightForecast({ today, tomorrow, onDayClick }: TonightForecastProps) {
+export default function TonightForecast({ today, tomorrow, onDayClick, includeWeather = true }: TonightForecastProps) {
   if (!today) return null;
 
   const todayDay = today!;
-  const todayScore = calcScore(todayDay);
-  const tomorrowScore = tomorrow ? calcScore(tomorrow) : null;
+  const todayScore = calcScore(todayDay, includeWeather);
+  const tomorrowScore = tomorrow ? calcScore(tomorrow, includeWeather) : null;
   const now = new Date();
   const hour = now.getHours();
   const isNight = hour >= 19 || hour <= 5;

@@ -5,6 +5,8 @@ export type ScoreMode = 'balanced' | 'moon' | 'cloud' | 'gc';
 interface ScoreFilterProps {
   mode: ScoreMode;
   onChange: (mode: ScoreMode) => void;
+  includeWeather: boolean;
+  onIncludeWeatherChange: (v: boolean) => void;
 }
 
 const MODES: { key: ScoreMode; label: string; icon: string; desc: string }[] = [
@@ -14,11 +16,22 @@ const MODES: { key: ScoreMode; label: string; icon: string; desc: string }[] = [
   { key: 'gc', label: 'GC', icon: '🌌', desc: 'Prioritize GC visibility' },
 ];
 
-export default function ScoreFilter({ mode, onChange }: ScoreFilterProps) {
+export default function ScoreFilter({ mode, onChange, includeWeather, onIncludeWeatherChange }: ScoreFilterProps) {
   return (
     <div className="mb-3">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-[10px] text-slate-500 uppercase tracking-wide">Score Filter</span>
+        <button
+          onClick={() => onIncludeWeatherChange(!includeWeather)}
+          className={`ml-auto px-2 py-0.5 rounded-full border text-[9px] font-medium transition-colors ${
+            includeWeather
+              ? 'bg-sky-900/50 border-sky-700/50 text-sky-300'
+              : 'bg-slate-800 border-slate-700 text-slate-500'
+          }`}
+          title={includeWeather ? 'คะแนนรวมเมฆ (มีเฉพาะวันที่มีข้อมูล ~7 วัน)' : 'คะแนน Astro ล้วน (จันทร์+GC) — ใช้ได้ทั้งปี วางแผนไกล'}
+        >
+          ☁️ อากาศ {includeWeather ? 'เปิด' : 'ปิด'}
+        </button>
       </div>
       <div className="flex gap-1.5">
         {MODES.map((m) => (
@@ -41,22 +54,27 @@ export default function ScoreFilter({ mode, onChange }: ScoreFilterProps) {
   );
 }
 
-export function calcWeightedScore(day: import('@/types').DayData, mode: ScoreMode): number {
+export function calcWeightedScore(
+  day: import('@/types').DayData,
+  mode: ScoreMode,
+  includeWeather = true
+): number {
   if (day.visibility === 'hidden' && mode !== 'cloud') return 0;
 
+  const hasCloud = includeWeather && day.cloudCoverPercentage !== null;
   let score = 100;
 
   switch (mode) {
     case 'moon':
       // Moon is most important (dark sky), then cloud, then GC
       score -= (day.moonLevel - 1) * 12;
-      if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.3;
+      if (hasCloud) score -= day.cloudCoverPercentage! * 0.3;
       if (!day.galacticCenter) score -= 10;
       break;
 
     case 'cloud':
       // Cloud is most important (clear sky), then moon, then GC
-      if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.8;
+      if (hasCloud) score -= day.cloudCoverPercentage! * 0.8;
       else score -= 20; // Penalty for unknown cloud data
       score -= (day.moonLevel - 1) * 5;
       if (!day.galacticCenter) score -= 10;
@@ -66,13 +84,13 @@ export function calcWeightedScore(day: import('@/types').DayData, mode: ScoreMod
       // GC visibility is most important
       if (!day.galacticCenter) score -= 50;
       score -= (day.moonLevel - 1) * 6;
-      if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.4;
+      if (hasCloud) score -= day.cloudCoverPercentage! * 0.4;
       break;
 
     case 'balanced':
     default:
       score -= (day.moonLevel - 1) * 8;
-      if (day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
+      if (hasCloud) score -= day.cloudCoverPercentage! * 0.5;
       if (!day.galacticCenter) score -= 20;
       break;
   }
