@@ -7,24 +7,18 @@ interface MonthTimelineProps {
   onDayClick: (day: DayData) => void;
 }
 
-const START_H = 18;
-const END_H = 30;
 const W = 300;
 const BAR_H = 12;
 
 const DOW = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-/** "HH:MM" → hours on the 18–30 night domain. */
-function toDomainHours(t: string): number | null {
+/** Parse "HH:MM" → night-domain hours (morning times +24). */
+function parseNightHours(t: string): number | null {
   const [h, m] = t.split(':').map(Number);
   if (Number.isNaN(h)) return null;
   let hours = h + m / 60;
   if (hours < 12) hours += 24;
-  return Math.min(Math.max(hours, START_H), END_H);
-}
-
-function x(hours: number): number {
-  return ((hours - START_H) / (END_H - START_H)) * W;
+  return hours;
 }
 
 function windowDuration(rise: string, set: string): string {
@@ -46,13 +40,41 @@ export default function MonthTimeline({ days, onDayClick }: MonthTimelineProps) 
   const monthPrefix = days.length > 0 ? days[Math.floor(days.length / 2)].id.slice(0, 7) : '';
   const nights = days.filter((d) => d.id.startsWith(monthPrefix));
 
+  // Dynamic domain: earliest sunset → latest dawn of the month (rounded outward to 30 min)
+  let sunsetMin = Infinity;
+  let dawnMax = -Infinity;
+  for (const d of nights) {
+    if (!d.sunMoon) continue;
+    const sunset = parseNightHours(d.sunMoon.sunset);
+    const dawn = parseNightHours(d.sunMoon.astronomicalDawn);
+    if (sunset !== null) sunsetMin = Math.min(sunsetMin, sunset);
+    if (dawn !== null) dawnMax = Math.max(dawnMax, dawn);
+  }
+  if (!Number.isFinite(sunsetMin)) sunsetMin = 18;
+  if (!Number.isFinite(dawnMax)) dawnMax = 30;
+  const START_H = Math.floor((sunsetMin - 0.25) * 2) / 2;
+  const END_H = Math.ceil((dawnMax + 0.25) * 2) / 2;
+
+  const toDomainHours = (t: string): number | null => {
+    const h = parseNightHours(t);
+    if (h === null) return null;
+    return Math.min(Math.max(h, START_H), END_H);
+  };
+  const x = (hours: number): number => ((hours - START_H) / (END_H - START_H)) * W;
+
+  // tick every 2 hours from the start
+  const ticks: number[] = [];
+  for (let h = Math.ceil(START_H); h <= END_H; h++) {
+    if ((h - Math.ceil(START_H)) % 2 === 0) ticks.push(h);
+  }
+
   return (
     <div className="mb-4">
       {/* hour scale header */}
       <div className="flex items-center gap-2 mb-1">
         <span className="w-12 shrink-0" />
         <div className="flex-1 relative h-3 text-[8px] text-slate-600">
-          {[18, 20, 22, 24, 26, 28, 30].map((h) => (
+          {ticks.map((h) => (
             <span
               key={h}
               className="absolute -translate-x-1/2"
@@ -131,7 +153,7 @@ export default function MonthTimeline({ days, onDayClick }: MonthTimelineProps) 
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-indigo-900" /> ความมืด</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-500/40" /> จันทร์ขึ้น</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400" /> ช่วงถ่าย GC</span>
-        <span>แกนเวลา 18:00 → 06:00 · กดแถวเพื่อดูรายละเอียด</span>
+        <span>แกนเวลา {String(Math.floor(START_H) % 24).padStart(2, '0')}:{START_H % 1 ? '30' : '00'} (เย็น) → {String(Math.floor(END_H) % 24).padStart(2, '0')}:{END_H % 1 ? '30' : '00'} (เช้า) · กดแถวเพื่อดูรายละเอียด</span>
       </div>
     </div>
   );

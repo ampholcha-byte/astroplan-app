@@ -381,6 +381,29 @@ export default function CalendarPage() {
               ★ {goodDays} good shooting {goodDays === 1 ? 'day' : 'days'} this month
             </p>
           )}
+          {/* View toggle lives with month nav so both views switch months in place */}
+          <div className="flex justify-center gap-1.5 mt-1.5">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-2.5 py-0.5 text-[10px] rounded-full border transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-indigo-600 border-indigo-500 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              🗓 Grid
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-2.5 py-0.5 text-[10px] rounded-full border transition-colors ${
+                viewMode === 'timeline'
+                  ? 'bg-indigo-600 border-indigo-500 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              📊 Timeline
+            </button>
+          </div>
         </div>
         <button
           onClick={handleNextMonth}
@@ -405,30 +428,6 @@ export default function CalendarPage() {
           📅 Today
         </button>
       )}
-
-      {/* View toggle: grid / timeline */}
-      <div className="flex gap-1.5 mb-3">
-        <button
-          onClick={() => setViewMode('grid')}
-          className={`px-3 py-1 text-[11px] rounded-full border transition-colors ${
-            viewMode === 'grid'
-              ? 'bg-indigo-600 border-indigo-500 text-white'
-              : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
-          }`}
-        >
-          🗓 Grid
-        </button>
-        <button
-          onClick={() => setViewMode('timeline')}
-          className={`px-3 py-1 text-[11px] rounded-full border transition-colors ${
-            viewMode === 'timeline'
-              ? 'bg-indigo-600 border-indigo-500 text-white'
-              : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
-          }`}
-        >
-          📊 Timeline
-        </button>
-      </div>
 
       {/* Legend (grid view) */}
       {viewMode === 'grid' && (
