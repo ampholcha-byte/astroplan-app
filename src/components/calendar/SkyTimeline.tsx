@@ -211,21 +211,6 @@ export default function SkyTimeline({ day, lat, lng }: SkyTimelineProps) {
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400" /> Shooting window</span>
         </div>
 
-        {/* time slider */}
-        <input
-          type="range"
-          min={0}
-          max={12}
-          step={1}
-          value={idx}
-          onChange={(e) => setSelectedIdx(Number(e.target.value))}
-          className="w-full accent-indigo-400 mb-3"
-          aria-label="Selected hour"
-        />
-        <div className="flex justify-between text-[9px] text-slate-500 mb-3">
-          <span>18:00</span><span>00:00</span><span>06:00</span>
-        </div>
-
         {/* panorama */}
         <svg viewBox={`0 0 ${PW} ${PH}`} className="w-full" role="img" aria-label="Sky panorama facing south">
           {/* sky gradient */}
@@ -316,6 +301,21 @@ export default function SkyTimeline({ day, lat, lng }: SkyTimelineProps) {
             </circle>
           )}
         </svg>
+
+        {/* time slider — below the panorama so your thumb never covers the graph */}
+        <input
+          type="range"
+          min={0}
+          max={12}
+          step={1}
+          value={idx}
+          onChange={(e) => setSelectedIdx(Number(e.target.value))}
+          className="w-full accent-indigo-400 mt-2"
+          aria-label="Selected hour"
+        />
+        <div className="flex justify-between text-[9px] text-slate-500 mb-2">
+          <span>18:00</span><span>00:00</span><span>06:00</span>
+        </div>
 
         {/* focal length selector */}
         <div className="flex gap-1.5 mt-2 mb-2">
