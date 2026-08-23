@@ -83,7 +83,7 @@ export default function DayCell({ day, onClick, isToday }: DayCellProps) {
   return (
     <button
       type="button"
-      className={`${bgColor} ${textColor} aspect-square flex flex-col items-center justify-between p-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900 z-10' : ''}`}
+      className={`${bgColor} ${textColor} aspect-[5/6] flex flex-col items-center justify-between p-1 cursor-pointer hover:scale-105 hover:z-10 hover:shadow-lg hover:shadow-indigo-500/20 rounded-sm relative overflow-hidden ${isHidden ? 'opacity-40 grayscale-[30%]' : ''} ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900 z-10' : ''}`}
       onClick={onClick}
       aria-label={`Day ${day.date}, moon level ${day.moonLevel}, cloud ${day.cloudCoverPercentage !== null ? day.cloudCoverPercentage + '%' : 'no data'}${isToday ? ' (today)' : ''}`}
     >

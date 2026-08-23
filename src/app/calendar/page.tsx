@@ -382,7 +382,7 @@ export default function CalendarPage() {
               ★ {goodDays} good shooting {goodDays === 1 ? 'day' : 'days'} this month
             </p>
           )}
-          {/* View toggle lives with month nav so both views switch months in place */}
+          {/* View toggle + Today live together under the month title */}
           <div className="flex justify-center gap-1.5 mt-1.5">
             <button
               onClick={() => setViewMode('grid')}
@@ -404,6 +404,17 @@ export default function CalendarPage() {
             >
               📊 Timeline
             </button>
+            {!isCurrentMonth && (
+              <button
+                onClick={() => {
+                  fetchedRef.current = '';
+                  regenerateCalendar(now.getFullYear(), now.getMonth());
+                }}
+                className="px-2.5 py-0.5 text-[10px] rounded-full border border-indigo-500 bg-indigo-600/80 hover:bg-indigo-500 text-white transition-colors"
+              >
+                📅 Today
+              </button>
+            )}
           </div>
         </div>
         <button
@@ -416,19 +427,6 @@ export default function CalendarPage() {
 
       {/* Milky Way season indicator for this month/location */}
       <MilkyWaySeasonBanner season={mwSeason} />
-
-      {/* Today button — hidden when already on current month */}
-      {!isCurrentMonth && (
-        <button
-          onClick={() => {
-            fetchedRef.current = '';
-            regenerateCalendar(now.getFullYear(), now.getMonth());
-          }}
-          className="mb-3 px-4 py-1.5 text-xs font-medium rounded-full bg-indigo-600/80 hover:bg-indigo-500 text-white transition-colors"
-        >
-          📅 Today
-        </button>
-      )}
 
       {/* Legend (grid view) */}
       {viewMode === 'grid' && (
