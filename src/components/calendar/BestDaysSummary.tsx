@@ -1,29 +1,19 @@
 'use client';
 
 import { DayData } from '@/types';
+import { calcWeightedScore, ScoreMode } from '@/components/calendar/ScoreFilter';
 
 interface BestDaysSummaryProps {
   days: DayData[];
   onDayClick: (day: DayData) => void;
   includeWeather?: boolean;
+  scoreMode?: ScoreMode;
 }
 
-function getDayScore(day: DayData, includeWeather = true): number {
-  if (day.visibility === 'hidden') return 0;
-  let score = 100;
-  score -= (day.moonLevel - 1) * 8;
-  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
-  // Bonus for dark sky (low light pollution)
-  if (day.lightPollution) {
-    score -= (day.lightPollution.bortleScale - 1) * 3;
-  }
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-export default function BestDaysSummary({ days, onDayClick, includeWeather = true }: BestDaysSummaryProps) {
+export default function BestDaysSummary({ days, onDayClick, includeWeather = true, scoreMode = 'balanced' }: BestDaysSummaryProps) {
   const ranked = days
     .filter((d) => d.visibility === 'visible')
-    .map((d) => ({ ...d, score: getDayScore(d, includeWeather) }))
+    .map((d) => ({ ...d, score: calcWeightedScore(d, scoreMode, includeWeather) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 

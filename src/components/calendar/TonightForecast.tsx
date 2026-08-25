@@ -1,12 +1,14 @@
 'use client';
 
 import { DayData } from '@/types';
+import { calcWeightedScore, ScoreMode } from '@/components/calendar/ScoreFilter';
 
 interface TonightForecastProps {
   today: DayData | null | undefined;
   tomorrow: DayData | null | undefined;
   onDayClick: (day: DayData) => void;
   includeWeather?: boolean;
+  scoreMode?: ScoreMode;
 }
 
 function getScoreEmoji(score: number): string {
@@ -33,15 +35,6 @@ function getScoreColor(score: number): string {
   return 'text-red-400';
 }
 
-function calcScore(day: DayData, includeWeather = true): number {
-  if (day.visibility === 'hidden') return 0;
-  let score = 100;
-  score -= (day.moonLevel - 1) * 8;
-  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
-  if (!day.galacticCenter) score -= 30; // GC not visible during night
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
-
 function MoonPhaseEmoji(level: number): string {
   if (level <= 1) return '🌑';
   if (level <= 3) return '🌒';
@@ -50,12 +43,12 @@ function MoonPhaseEmoji(level: number): string {
   return '🌕';
 }
 
-export default function TonightForecast({ today, tomorrow, onDayClick, includeWeather = true }: TonightForecastProps) {
+export default function TonightForecast({ today, tomorrow, onDayClick, includeWeather = true, scoreMode = 'balanced' }: TonightForecastProps) {
   if (!today) return null;
 
   const todayDay = today!;
-  const todayScore = calcScore(todayDay, includeWeather);
-  const tomorrowScore = tomorrow ? calcScore(tomorrow, includeWeather) : null;
+  const todayScore = calcWeightedScore(todayDay, scoreMode, includeWeather);
+  const tomorrowScore = tomorrow ? calcWeightedScore(tomorrow, scoreMode, includeWeather) : null;
   const now = new Date();
   const hour = now.getHours();
   const isNight = hour >= 19 || hour <= 5;

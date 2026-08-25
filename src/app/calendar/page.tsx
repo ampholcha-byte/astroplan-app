@@ -238,8 +238,12 @@ export default function CalendarPage() {
       setWeatherLoading(true);
       fetchedRef.current = cacheKey;
       try {
-        weatherCache = await fetchWeatherForMonth(year, month, coords.lat, coords.lng);
-        weatherCacheRef.current = weatherCache;
+        const fetched = await fetchWeatherForMonth(year, month, coords.lat, coords.lng);
+        // Stale response? A newer navigation (month/location change) started meanwhile.
+        if (fetchedRef.current === cacheKey) {
+          weatherCache = fetched;
+          weatherCacheRef.current = weatherCache;
+        }
       } catch (err) {
         console.warn('Weather fetch failed:', err);
       } finally {
@@ -261,7 +265,9 @@ export default function CalendarPage() {
         lpData = lightPollutionRef.current;
       }
 
-      // Apply calendar AFTER both fetches complete
+      // Apply calendar AFTER both fetches complete — but only if this is still
+      // the newest request (fast month-nav can outpace a slow weather fetch).
+      if (fetchedRef.current !== cacheKey) return;
       buildAndApply(year, month, weatherCache, lpData);
     },
     [coords, buildAndApply]
@@ -470,7 +476,7 @@ export default function CalendarPage() {
       <ScoreFilter mode={scoreMode} onChange={setScoreMode} includeWeather={includeWeather} onIncludeWeatherChange={setIncludeWeather} />
 
       {/* Best days summary */}
-      <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} includeWeather={includeWeather} />
+      <BestDaysSummary days={calendar.days} onDayClick={setSelectedDay} includeWeather={includeWeather} scoreMode={scoreMode} />
 
       {/* Day details modal */}
       {selectedDay && (
@@ -479,6 +485,7 @@ export default function CalendarPage() {
           onClose={() => setSelectedDay(null)}
           locationName={location?.displayName ?? ''}
           includeWeather={includeWeather}
+          scoreMode={scoreMode}
           lat={coords.lat}
           lng={coords.lng}
         />

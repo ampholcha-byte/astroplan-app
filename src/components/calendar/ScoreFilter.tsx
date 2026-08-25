@@ -63,6 +63,11 @@ export function calcWeightedScore(
   const hasCloud = includeWeather && day.cloudCoverPercentage !== null;
   let score = 100;
 
+  // Light pollution penalty — same weight across modes (was only in BestDaysSummary)
+  if (day.lightPollution) {
+    score -= (day.lightPollution.bortleScale - 1) * 3;
+  }
+
   switch (mode) {
     case 'moon':
       // Moon is most important (dark sky), then cloud, then GC

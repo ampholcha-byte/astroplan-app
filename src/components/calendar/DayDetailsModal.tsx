@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { DayData } from '@/types';
 import ChecklistPanel from '@/components/planning/ChecklistPanel';
 import SkyTimeline from '@/components/calendar/SkyTimeline';
+import { calcWeightedScore, ScoreMode } from '@/components/calendar/ScoreFilter';
 
 interface DayDetailsModalProps {
   day: DayData;
   onClose: () => void;
   locationName?: string;
   includeWeather?: boolean;
+  scoreMode?: ScoreMode;
   lat?: number;
   lng?: number;
 }
@@ -67,14 +69,7 @@ function getShootingAdvice(day: DayData): string[] {
   return tips;
 }
 
-function getOverallScore(day: DayData, includeWeather = true): { score: number; label: string; color: string } {
-  if (day.visibility === 'hidden') return { score: 0, label: 'Not Visible', color: 'text-gray-400' };
-
-  let score = 100;
-  score -= (day.moonLevel - 1) * 8;
-  if (includeWeather && day.cloudCoverPercentage !== null) score -= day.cloudCoverPercentage * 0.5;
-  score = Math.max(0, Math.min(100, Math.round(score)));
-
+function getOverallScore(score: number): { score: number; label: string; color: string } {
   if (score >= 80) return { score, label: 'Excellent', color: 'text-green-400' };
   if (score >= 60) return { score, label: 'Good', color: 'text-emerald-400' };
   if (score >= 40) return { score, label: 'Fair', color: 'text-yellow-400' };
@@ -82,8 +77,9 @@ function getOverallScore(day: DayData, includeWeather = true): { score: number; 
   return { score, label: 'Very Poor', color: 'text-red-400' };
 }
 
-export default function DayDetailsModal({ day, onClose, locationName, includeWeather = true, lat = 13.7563, lng = 100.5018 }: DayDetailsModalProps) {
-  const score = getOverallScore(day, includeWeather);
+export default function DayDetailsModal({ day, onClose, locationName, includeWeather = true, scoreMode = 'balanced', lat = 13.7563, lng = 100.5018 }: DayDetailsModalProps) {
+  const rawScore = calcWeightedScore(day, scoreMode, includeWeather);
+  const score = getOverallScore(rawScore);
   const advice = getShootingAdvice(day);
 
   return (

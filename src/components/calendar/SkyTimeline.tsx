@@ -74,13 +74,23 @@ export default function SkyTimeline({ day, lat, lng }: SkyTimelineProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [focal, setFocal] = useState(14);
 
+  // Default selection: middle of shooting window if present, else mid-night
+  // (computed before the memos so the MW band renders at the same hour as
+  // the GC marker on first open)
+  const parsePre = (t: string | null | undefined) => (t ? toDomainHours(t) : null);
+  const winFromPre = day.galacticCenter ? parsePre(day.galacticCenter.rise) : null;
+  const winToPre = day.galacticCenter ? parsePre(day.galacticCenter.set) : null;
+  const defaultIdx = winFromPre !== null && winToPre !== null
+    ? Math.min(12, Math.max(0, Math.round(((winFromPre + winToPre) / 2 - START_H))))
+    : 6;
+
   // MW band geometry at the selected hour (kept above the early return — hook order)
   const mwBand = useMemo(() => {
     const [y, m, d] = day.id.split('-').map(Number);
     const base = new Date(y, m - 1, d).getTime();
-    const t = new Date(base + (START_H + (selectedIdx ?? 6)) * 3600_000);
+    const t = new Date(base + (START_H + (selectedIdx ?? defaultIdx)) * 3600_000);
     return getMWBandPoints(t, lat, lng, 5);
-  }, [day.id, selectedIdx, lat, lng]);
+  }, [day.id, selectedIdx, defaultIdx, lat, lng]);
 
   // Split band into above-horizon polyline segments (panorama covers az 90–270)
   const mwSegments = useMemo(() => {
@@ -120,10 +130,6 @@ export default function SkyTimeline({ day, lat, lng }: SkyTimelineProps) {
   const winFromH = day.galacticCenter ? parse(day.galacticCenter.rise) : null;
   const winToH = day.galacticCenter ? parse(day.galacticCenter.set) : null;
 
-  // Default selection: middle of shooting window if present, else mid-night
-  const defaultIdx = winFromH !== null && winToH !== null
-    ? Math.min(12, Math.max(0, Math.round(((winFromH + winToH) / 2 - START_H))))
-    : 6;
   const idx = selectedIdx ?? defaultIdx;
   const sel = day.gcPositions[idx];
 
